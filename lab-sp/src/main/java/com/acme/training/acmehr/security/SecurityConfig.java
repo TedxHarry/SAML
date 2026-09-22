@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .anyRequest().permitAll());
 
         if (relyingParties.getIfAvailable() != null) {
-            http.saml2Login(Customizer.withDefaults());
+            http.saml2Login(saml2 -> saml2.loginProcessingUrl("/saml/acs"));
             http.saml2Metadata(Customizer.withDefaults());
         }
 

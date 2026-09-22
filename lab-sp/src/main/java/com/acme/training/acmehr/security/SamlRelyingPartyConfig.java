@@ -19,7 +19,7 @@ public class SamlRelyingPartyConfig {
 
     static final String REGISTRATION_ID = "acmehr";
     static final String SP_ENTITY_ID = "urn:acme:training:sp";
-    static final String ACS_LOCATION = "{baseUrl}/login/saml2/sso/{registrationId}";
+    static final String ACS_LOCATION = "{baseUrl}/saml/acs";
     static final String IDP_METADATA_PROPERTY = "acmehr.saml.idp-metadata-url";
 
     @Bean

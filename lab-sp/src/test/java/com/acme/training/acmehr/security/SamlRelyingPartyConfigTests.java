@@ -22,7 +22,7 @@ class SamlRelyingPartyConfigTests {
         assertThat(registration.getRegistrationId()).isEqualTo("acmehr");
         assertThat(registration.getEntityId()).isEqualTo("urn:acme:training:sp");
         assertThat(registration.getAssertionConsumerServiceLocation())
-                .isEqualTo("{baseUrl}/login/saml2/sso/{registrationId}");
+                .isEqualTo("{baseUrl}/saml/acs");
 
         var assertingParty = registration.getAssertingPartyMetadata();
 
