@@ -400,7 +400,7 @@ Here is a safe training value.
 It does not contain real identity data.
 
 ```text
-PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJvdG9jb2wiIElEPSJfZGF5Mi1yZXNwb25zZSIgVmVyc2lvbj0iMi4wIiBJc3N1ZUluc3RhbnQ9IjIwMjYtMDktMjFUMTI6MDA6MDVaIj48L3NhbWxwOlJlc3BvbnNlPg==
+PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJvdG9jb2wiIElEPSJfZGF5Mi1yZXNwb25zZSIgVmVyc2lvbj0iMi4wIiBJc3N1ZUluc3RhbnQ9IjIwMjYtMDktMjFUMTI6MDA6MDVaIj48c2FtbHA6U3RhdHVzPjxzYW1scDpTdGF0dXNDb2RlIFZhbHVlPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6c3RhdHVzOlN1Y2Nlc3MiLz48L3NhbWxwOlN0YXR1cz48L3NhbWxwOlJlc3BvbnNlPg==
 ```
 
 This represents a small training SAMLResponse sent using the POST-style encoding path we discussed.
@@ -408,7 +408,7 @@ This represents a small training SAMLResponse sent using the POST-style encoding
 Run:
 
 ```text
-python -c "import base64; v='PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJvdG9jb2wiIElEPSJfZGF5Mi1yZXNwb25zZSIgVmVyc2lvbj0iMi4wIiBJc3N1ZUluc3RhbnQ9IjIwMjYtMDktMjFUMTI6MDA6MDVaIj48L3NhbWxwOlJlc3BvbnNlPg=='; print(base64.b64decode(v).decode())"
+python -c "import base64; v='PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJvdG9jb2wiIElEPSJfZGF5Mi1yZXNwb25zZSIgVmVyc2lvbj0iMi4wIiBJc3N1ZUluc3RhbnQ9IjIwMjYtMDktMjFUMTI6MDA6MDVaIj48c2FtbHA6U3RhdHVzPjxzYW1scDpTdGF0dXNDb2RlIFZhbHVlPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6c3RhdHVzOlN1Y2Nlc3MiLz48L3NhbWxwOlN0YXR1cz48L3NhbWxwOlJlc3BvbnNlPg=='; print(base64.b64decode(v).decode())"
 ```
 
 You should see XML beginning with:
