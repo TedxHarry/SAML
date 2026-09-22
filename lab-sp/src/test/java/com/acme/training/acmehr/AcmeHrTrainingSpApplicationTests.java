@@ -39,10 +39,9 @@ class AcmeHrTrainingSpApplicationTests {
     }
 
     @Test
-    void loginFailsClearlyWhenIdpMetadataIsMissing() throws Exception {
-        mockMvc.perform(get("/login"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(content().string(containsString("SAML login is not configured yet.")));
+    void protectedPageRemainsUnavailableWhenIdpMetadataIsMissing() throws Exception {
+        mockMvc.perform(get("/protected"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
