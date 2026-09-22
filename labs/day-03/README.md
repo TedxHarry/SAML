@@ -511,15 +511,15 @@ We only want to follow the browser path.
 
 # Part 12: Start the first SP-initiated login
 
-Start from the Service Provider by opening:
+Start from the Service Provider by opening the protected AcmeHR page:
 
 ```text
-http://localhost:8000/saml2/authenticate/acmehr
+http://localhost:8000/protected
 ```
 
-This is AcmeHR's SAML login-start endpoint.
+Because the page requires an authenticated AcmeHR session, Spring Security starts the SAML login automatically.
 
-You are still starting from the Service Provider, so this is an **SP-initiated** flow.
+This is an **SP-initiated** flow because the user started from AcmeHR.
 
 The browser should leave AcmeHR and go to Okta.
 
