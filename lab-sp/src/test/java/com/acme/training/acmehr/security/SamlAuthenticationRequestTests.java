@@ -30,4 +30,13 @@ class SamlAuthenticationRequestTests {
                                 startsWith("https://idp.acme.test/sso?"),
                                 containsString("SAMLRequest="))));
     }
+    @Test
+    void protectedPageStartsSamlLoginForUnauthenticatedUser() throws Exception {
+        mockMvc.perform(get("/protected"))
+                .andExpect(status().isFound())
+                .andExpect(header().string(
+                        "Location",
+                        containsString("/saml2/authenticate/acmehr")));
+    }
+
 }
