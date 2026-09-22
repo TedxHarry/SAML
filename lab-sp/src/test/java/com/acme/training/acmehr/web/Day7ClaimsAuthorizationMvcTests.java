@@ -16,6 +16,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = "acmehr.saml.idp-metadata-url=classpath:idp-metadata.xml")
@@ -24,6 +25,25 @@ class Day7ClaimsAuthorizationMvcTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+
+    @Test
+    void unauthenticatedClaimsRequestStartsSamlLogin() throws Exception {
+        mockMvc.perform(get("/claims"))
+                .andExpect(status().isFound())
+                .andExpect(header().string(
+                        "Location",
+                        containsString("/saml2/authenticate?registrationId=acmehr")));
+    }
+
+    @Test
+    void unauthenticatedManagerRequestStartsSamlLogin() throws Exception {
+        mockMvc.perform(get("/manager"))
+                .andExpect(status().isFound())
+                .andExpect(header().string(
+                        "Location",
+                        containsString("/saml2/authenticate?registrationId=acmehr")));
+    }
 
     @Test
     void claimsPageRendersValidatedClaimsAndMappedManagerRole() throws Exception {
