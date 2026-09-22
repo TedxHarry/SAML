@@ -36,7 +36,7 @@ class SamlAuthenticationRequestTests {
                 .andExpect(status().isFound())
                 .andExpect(header().string(
                         "Location",
-                        containsString("/saml2/authenticate/acmehr")));
+                        containsString("/saml2/authenticate?registrationId=acmehr")));
     }
 
 }
