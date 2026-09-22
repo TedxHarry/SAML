@@ -36,6 +36,8 @@ You need:
 - a local Python 3 installation for the decoding exercises
 - the Day 2 lesson
 
+The commands below use `python`. If your computer starts Python with `python3` or `py` instead, use that command in the same examples.
+
 You do **not** need:
 
 - Okta Admin Console access
