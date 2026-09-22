@@ -11,6 +11,7 @@ import org.springframework.security.saml2.provider.service.registration.InMemory
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
+import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
 import org.springframework.util.StringUtils;
 
 @Configuration
@@ -31,6 +32,8 @@ public class SamlRelyingPartyConfig {
                 .registrationId(REGISTRATION_ID)
                 .entityId(SP_ENTITY_ID)
                 .assertionConsumerServiceLocation(ACS_LOCATION)
+                .assertingPartyMetadata(party -> party
+                        .singleSignOnServiceBinding(Saml2MessageBinding.REDIRECT))
                 .build();
 
         return new InMemoryRelyingPartyRegistrationRepository(registration);
