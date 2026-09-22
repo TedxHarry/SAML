@@ -635,17 +635,19 @@ SAML/
 |   ├── README.md
 |   ├── day-01/
 |   ├── day-02/
+|   ├── day-03/
 |   ├── ...
 |   └── day-15/
 |
 ├── lab-sp/
 |   ├── README.md
+|   ├── library-selection.md
+|   ├── pom.xml
 |   ├── Dockerfile
-|   ├── app/
-|   ├── config/
-|   ├── metadata/
-|   ├── certificates/
-|   └── tests/
+|   ├── compose.yml
+|   └── src/
+|       ├── main/
+|       └── test/
 |
 ├── diagrams/
 |   └── README.md
@@ -674,6 +676,7 @@ SAML/
 |
 └── .github/
     └── workflows/
+        ├── lab-sp-build.yml
         └── course-quality.yml
 ```
 
@@ -783,6 +786,14 @@ Throughout the course:
 - [x] Day 2 teaching diagrams integrated into the lesson
 - [x] Day 2 review and pressure test
 - [x] Day 2 closed
-- [ ] Day 3 and later content
+- [x] Day 3 lesson
+- [x] Day 3 training SP stack selected and documented
+- [x] Day 3 training SP implementation
+- [x] Day 3 automated SAML and security checks
+- [x] Day 3 Docker build and startup smoke test
+- [x] Day 3 lab
+- [x] Day 3 final review and pressure test
+- [x] Day 3 course artifact closed
+- [ ] Day 4 and later content
 
-The next course file will be created only after this structure has been reviewed and accepted.
+Day 3 course development is closed. During the lab, the learner must still prove the live transaction against their own Okta org, including the return to the ACS and creation of the AcmeHR application session, before continuing to Day 4.
