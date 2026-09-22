@@ -13,3 +13,7 @@ management:
   endpoint:
     health:
       show-details: never
+
+acmehr:
+  saml:
+    idp-metadata-url: ${IDP_METADATA_URL:}
