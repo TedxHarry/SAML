@@ -1,25 +1,30 @@
 package com.acme.training.acmehr.security;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
+import org.springframework.util.StringUtils;
 
 @Configuration
-@ConditionalOnProperty(name = "acmehr.saml.idp-metadata-url")
+@Conditional(SamlRelyingPartyConfig.IdpMetadataConfiguredCondition.class)
 public class SamlRelyingPartyConfig {
 
     static final String REGISTRATION_ID = "acmehr";
     static final String SP_ENTITY_ID = "urn:acme:training:sp";
     static final String ACS_LOCATION = "{baseUrl}/login/saml2/sso/{registrationId}";
+    static final String IDP_METADATA_PROPERTY = "acmehr.saml.idp-metadata-url";
 
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(
-            @Value("${acmehr.saml.idp-metadata-url}") String idpMetadataUrl) {
+            @Value("\${acmehr.saml.idp-metadata-url}") String idpMetadataUrl) {
 
         RelyingPartyRegistration registration = RelyingPartyRegistrations
                 .fromMetadataLocation(idpMetadataUrl)
@@ -29,5 +34,14 @@ public class SamlRelyingPartyConfig {
                 .build();
 
         return new InMemoryRelyingPartyRegistrationRepository(registration);
+    }
+
+    static class IdpMetadataConfiguredCondition implements Condition {
+
+        @Override
+        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+            String metadataUrl = context.getEnvironment().getProperty(IDP_METADATA_PROPERTY);
+            return StringUtils.hasText(metadataUrl);
+        }
     }
 }
