@@ -639,37 +639,29 @@ The final approach will be chosen when the implementation is built.
 
 ---
 
-# Library selection rule
+# Library selection decision
 
-We are deliberately **not choosing the SAML library in this file**.
+The SAML implementation has now been selected.
 
-Before implementation, candidate libraries must be checked against current information.
+Current Day 3 stack:
 
-The selection must consider:
+```text
+Java 21
+Spring Boot 4.1.1
+Spring Security 7.1.1
+spring-security-saml2-service-provider
+OpenSAML 5 through Spring Security
+```
 
-- active maintenance
-- recent release activity
-- unresolved security concerns
-- current advisories
-- SAML 2.0 SP support
-- secure signature validation
-- issuer validation
-- Audience validation
-- Destination and Recipient validation
-- time-condition validation
-- request correlation
-- AuthnRequest generation
-- AuthnRequest signing
-- encrypted assertion support
-- metadata generation
-- IdP metadata consumption
-- SP-initiated SSO
-- IdP-initiated SSO
-- logout capability needed later
-- Docker compatibility
-- ease of exposing validation evidence without bypassing library security
+The decision was made only after reviewing maintenance, current releases, security advisories, validation behavior, later signing and encryption needs, metadata support, and Docker compatibility.
 
-We will research the candidates immediately before implementation so we do not select a library based on stale information.
+The research and rationale are recorded in:
+
+```text
+lab-sp/library-selection.md
+```
+
+The dependency and advisory review must be repeated before later security-sensitive labs or any major version upgrade.
 
 ---
 
@@ -891,24 +883,29 @@ Do not create a large infrastructure stack for a small teaching SP.
 
 ---
 
-# Planned repository layout
+# Current repository layout
 
-The current planned layout is:
+The Day 3 implementation now uses the standard Maven project structure:
 
 ```text
 lab-sp/
 ├── README.md
+├── library-selection.md
+├── pom.xml
 ├── Dockerfile
-├── app/
-├── config/
-├── metadata/
-├── certificates/
-└── tests/
+├── compose.yml
+└── src/
+    ├── main/
+    │   ├── java/
+    │   └── resources/
+    └── test/
+        ├── java/
+        └── resources/
 ```
 
-Additional files should be added only when their purpose is clear.
+Later certificate, diagnostic, and lesson-specific files should be added only when their purpose becomes necessary.
 
-We do not need empty placeholder files merely to make the repository look complete.
+We do not need empty placeholder folders merely to make the repository look complete.
 
 ---
 
@@ -1045,43 +1042,67 @@ We will not jump directly to a large application implementation.
 
 ---
 
-# Definition of ready for the Day 3 lab
+# Day 3 readiness
 
-The training SP is ready for the Day 3 lab only when we can prove all of these:
+Repository readiness and a learner's live Okta transaction are two different proofs.
+
+## Proven automatically in the repository
 
 ```text
-[ ] Container starts cleanly
+[x] Maven build and tests pass
 
-[ ] AcmeHR home page loads
+[x] Docker image builds
 
-[ ] SP Entity ID is known
+[x] Container starts cleanly
 
-[ ] ACS URL is known
+[x] Health endpoint reports UP
 
-[ ] SP metadata is available
+[x] AcmeHR home page loads
 
-[ ] Okta metadata can be configured
+[x] SP Entity ID is urn:acme:training:sp
 
-[ ] Login starts from AcmeHR
+[x] ACS is http://localhost:8000/saml/acs
 
-[ ] Browser reaches Okta
+[x] SP metadata publishes the expected Entity ID and ACS
 
-[ ] Browser returns to ACS
+[x] IdP metadata can be loaded into the relying-party configuration
 
-[ ] SP validates the SAML login securely
+[x] Requesting the protected AcmeHR page starts the SAML flow
 
-[ ] AcmeHR application session is created
+[x] An unsigned SAML response is rejected
 
-[ ] Learner sees a simple success summary
+[x] Rejected SAML does not create an authenticated session
 
-[ ] Failed SAML validation does not create a session
+[x] No SAML security validation is disabled
 
-[ ] No security validation was disabled to make the flow work
+[x] The learner-facing home, protected, and transaction views are present
 
-[ ] Reset returns the SP to a known baseline
+[x] docker compose down returns the local runtime to a fresh container state
 ```
 
-Only after those checks pass should the course tell a fresher to run the Day 3 lab.
+These checks are enforced by the training SP test suite and GitHub Actions workflow.
+
+## Proven during the learner's Day 3 Okta lab
+
+A repository test cannot impersonate the learner's real Okta org. The live lab therefore proves the external part of the transaction:
+
+```text
+[ ] Browser reaches the learner's Okta org
+
+[ ] The assigned test user authenticates
+
+[ ] Okta returns the browser to /saml/acs
+
+[ ] AcmeHR accepts the real Okta SAML response
+
+[ ] AcmeHR creates its authenticated application session
+
+[ ] The protected page opens
+
+[ ] The transaction view shows the successful Day 3 baseline
+```
+
+The learner should not continue to Day 4 until those live checks pass.
 
 ---
 
