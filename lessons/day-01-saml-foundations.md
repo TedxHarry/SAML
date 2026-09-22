@@ -240,7 +240,7 @@ But the application still decides how that information maps to permissions.
 
 Provisioning answers:
 
-> Does the user's account exist in the application, and what should happen to that account during the user's lifecycle?
+> Does the user's account exist in the application, and what should happen to that account as the user joins, changes roles, or leaves?
 
 Examples:
 
@@ -263,7 +263,7 @@ Question                              Main concern
 Who is the user?                      Authentication
 What can the user do?                 Authorization
 Does the account exist and stay       Provisioning
-correct through its lifecycle?
+correct as the user changes over time?
 ```
 
 Keep these separate.
@@ -349,7 +349,7 @@ A simple example is:
 
 > An application receives limited permission to call an API on behalf of a user.
 
-That permission is usually represented by an access token with a defined scope.
+In OAuth 2.0, the application normally receives an **access token**, which it presents when calling the protected API or resource.
 
 OAuth 2.0 by itself is not the same thing as user authentication. OIDC adds the identity and sign-in layer on top of OAuth 2.0.
 
@@ -491,7 +491,7 @@ Authentication and provisioning are different.
 
 Not necessarily.
 
-A group may affect Okta assignment, may be sent as a SAML claim, or may be interpreted by the application.
+A group may affect Okta assignment, may be included in the SAML message, or may be interpreted by the application.
 
 Those are different layers.
 
