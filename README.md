@@ -778,6 +778,11 @@ Throughout the course:
 - [x] Day 1 teaching diagrams integrated into the lesson
 - [x] Day 1 review and pressure test
 - [x] Day 1 closed
-- [ ] Day 2 and later content
+- [x] Day 2 lesson
+- [x] Day 2 lab
+- [x] Day 2 teaching diagrams integrated into the lesson
+- [x] Day 2 review and pressure test
+- [x] Day 2 closed
+- [ ] Day 3 and later content
 
 The next course file will be created only after this structure has been reviewed and accepted.
