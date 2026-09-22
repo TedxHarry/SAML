@@ -13,7 +13,7 @@ By the end of Day 1, you should be able to look at a simple SAML requirement and
 - What is authorization?
 - What is provisioning?
 - Which of those jobs does SAML handle?
-- When someone says "SSO is failing," what layer might they actually mean?
+- When someone says "the login is failing," what part of the flow might actually be failing?
 
 You do not need to read SAML XML today.
 
@@ -37,11 +37,17 @@ The requirement is:
 
 > Employees should open AcmeHR and sign in using Okta.
 
+This is a **single sign-on (SSO)** requirement. In this project, SSO means AcmeHR relies on the employee's Okta sign-in instead of asking the employee to maintain a separate AcmeHR password.
+
 That sounds simple, but before configuring anything, an engineer needs to understand what each system is responsible for.
 
 ---
 
 ## Start with the problem
+
+Before we continue, one word needs to be clear.
+
+**Federation** means one system relies on another trusted identity system to authenticate the user instead of handling the whole login by itself.
 
 Without federation, an application may manage its own login.
 
@@ -76,6 +82,8 @@ In our project:
 - AcmeHR checks it
 - AcmeHR creates its own application session if everything is acceptable
 
+An **application session** is simply AcmeHR's own signed-in state for the user after it accepts the login.
+
 That is the basic idea.
 
 We will spend the rest of the course opening each part of that flow.
@@ -104,7 +112,7 @@ In this course:
 
 > Okta is the IdP.
 
-Okta may ask the user for a password, MFA, or another authenticator depending on Acme's policies.
+Okta may ask the user for a password and, depending on Acme's policy, another verification step. Using more than one type of verification is called **multi-factor authentication (MFA)**.
 
 The important point is that Okta performs the authentication.
 
@@ -243,7 +251,7 @@ Examples:
 
 SAML is not a full lifecycle provisioning protocol.
 
-Later we will discuss JIT and SCIM so you can see where those responsibilities belong.
+Later we will cover two common ways account creation and lifecycle can be handled. **JIT**, or just-in-time provisioning, can create an account when the user first signs in. **SCIM** is commonly used to create, update, and disable accounts through a provisioning interface.
 
 ---
 
@@ -331,19 +339,19 @@ OpenID Connect, usually called **OIDC**, is also used for authentication and fed
 
 It is commonly seen in modern web and mobile applications.
 
-OIDC uses tokens rather than SAML XML messages.
+OIDC extends OAuth 2.0 with user authentication and SSO. It commonly uses an **ID token** to carry information about the authenticated user instead of using a SAML Response.
 
 ### OAuth
 
-OAuth is mainly about delegated access.
+OAuth 2.0 is mainly about delegated authorization.
 
 A simple example is:
 
-> An application receives permission to call an API on behalf of a user.
+> An application receives limited permission to call an API on behalf of a user.
 
-OAuth by itself is not the same thing as user authentication.
+That permission is usually represented by an access token with a defined scope.
 
-OIDC adds an identity layer on top of OAuth.
+OAuth 2.0 by itself is not the same thing as user authentication. OIDC adds the identity and sign-in layer on top of OAuth 2.0.
 
 For this course, the important distinction is:
 
@@ -497,47 +505,62 @@ They solve different problems even though both appear in identity integrations.
 
 ## Day 1 exercise: classify the requirement
 
-Read each requirement and decide which area it belongs to.
+Read each requirement and decide which area it belongs to **before opening the answer**.
 
 ### Requirement 1
 
 > Employees should sign in to AcmeHR using Okta.
 
-Primary area:
+<details>
+<summary>Check your answer</summary>
 
 **Authentication and federation**
+
+</details>
 
 ### Requirement 2
 
 > New employees should have an AcmeHR account before their first day.
 
-Primary area:
+<details>
+<summary>Check your answer</summary>
 
 **Provisioning**
+
+</details>
 
 ### Requirement 3
 
 > Only members of the HR-Managers group should see salary reports.
 
-Primary area:
+<details>
+<summary>Check your answer</summary>
 
 **Authorization**
+
+</details>
 
 ### Requirement 4
 
 > When an employee leaves Acme, their AcmeHR account must be disabled.
 
-Primary area:
+<details>
+<summary>Check your answer</summary>
 
 **Provisioning**
+
+</details>
 
 ### Requirement 5
 
 > AcmeHR should trust Okta to authenticate employees.
 
-Primary area:
+<details>
+<summary>Check your answer</summary>
 
 **Federation**
+
+</details>
 
 If you can separate these requirements correctly, you are already thinking more clearly about the integration.
 
@@ -549,7 +572,10 @@ Requirement:
 
 > Acme employees open AcmeHR. AcmeHR redirects them to Okta for login. After successful authentication, they return to AcmeHR.
 
-Identify each participant.
+Before opening the answer, identify the user, IdP, SP, and browser's role.
+
+<details>
+<summary>Check your answer</summary>
 
 ```text
 User                 -> Acme employee
@@ -557,6 +583,8 @@ Identity Provider    -> Okta
 Service Provider     -> AcmeHR
 Transaction carrier  -> Browser
 ```
+
+</details>
 
 Do not move forward until this feels obvious.
 
