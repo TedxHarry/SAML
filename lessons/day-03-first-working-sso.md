@@ -667,29 +667,23 @@ That would build the wrong engineering habit.
 
 # 22. We will not hand-write SAML signature validation
 
-The local training SP will use a maintained SAML implementation rather than custom code that tries to implement XML signature validation from scratch.
+The local training SP uses Spring Security's SAML 2.0 Service Provider support, backed by OpenSAML, rather than custom code that tries to implement XML signature validation from scratch.
 
-Before the first live Day 3 lab is finalized, the SAML library will be selected and pinned after checking:
+That implementation was selected only after checking current maintenance, releases, security advisories, validation behavior, later request-signing and encryption needs, and Docker compatibility.
 
-- current maintenance status
-- recent releases
-- security advisories
-- supported SAML validation behavior
-- signed request support needed later
-- encrypted assertion support needed later
-- compatibility with the Dockerized training environment
+The exact engineering decision is recorded in `lab-sp/library-selection.md`.
 
 The learner should focus on SAML engineering, not on reinventing security-sensitive XML processing.
 
 ---
 
-# 23. Why the training SP will be Dockerized
+# 23. Why the training SP is Dockerized
 
 SAML libraries can depend on runtime packages and cryptographic or XML components.
 
 A fresher should not spend the first SAML lab fighting local dependency installation.
 
-So the training SP will be packaged in Docker.
+So the training SP is packaged in Docker.
 
 The goal is:
 
