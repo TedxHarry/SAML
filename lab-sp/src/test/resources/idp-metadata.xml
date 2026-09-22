@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor
+        xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+        xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+        entityID="https://idp.acme.test">
+
+    <md:IDPSSODescriptor
+            protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
+            WantAuthnRequestsSigned="false">
+
+        <md:KeyDescriptor use="signing">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>MIIDWzCCAkOgAwIBAgIUZlLInkfJZTA+YqpzBSoKhGWZ/LMwDQYJKoZIhvcNAQELBQAwPTEWMBQGA1UEAwwNQWNtZSBUZXN0IElkUDEWMBQGA1UECgwNQWNtZSBUcmFpbmluZzELMAkGA1UEBhMCVVMwHhcNMjYwOTIyMDY1NDM2WhcNMzYwOTE5MDY1NDM2WjA9MRYwFAYDVQQDDA1BY21lIFRlc3QgSWRQMRYwFAYDVQQKDA1BY21lIFRyYWluaW5nMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALysnG6LSFk3y5PzEXWijmzY6HSOeyH7024BMP1+SlVQaeU/LqQbi/Mw3+lVqTu5myBwjyjcKeYVenf5jEJwn7dbqA2a77bt6mv9xi4gjQ7nPmW3Ithd/QPmgm3VT8pK8mO9GXnZKBDL61u4cxPMZoKVLS3Pc0aIEEFDBV9qLcHAESG2EZV7rqNYd824Hes2zwedzjtHncG0kH5zlyb4SAdJUj6prfLRBOWXSbfAMT8ChdBO0sqjLsvNnCOlQLmAWmsKpxJjaNYzZnIJaC73V/7X7fDGf76RvJeIxkEy+8ln7n7ohOG2jCfHkjvXbVfnuOi+UcADUUmtbhoZxjhZ5hUCAwEAAaNTMFEwHQYDVR0OBBYEFPfK7u0s+LX6Ub/UIsmiXhnqoq2EMB8GA1UdIwQYMBaAFPfK7u0s+LX6Ub/UIsmiXhnqoq2EMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJzgRLaQuylkkbGe34A+wlKdOKaFK4phBAVQYMrqgtHR3UAY82mzhJ2HJ7Ue1WNGhPFxjnFvNZZ6xNOIJ4wJ14mdLuS3qRLcvg9V7ItYfaf3F8/2hUMmj5rP7ifcnn/bM+bNzH3RoVzljuNcQHMSNpjz68WpYNtIMQf9VTFNORPDtZC28+z2tdr3c7Z9zL2KPfmugblkTAyY2faTx0gcX+gCz+fnpU1qyYvpKygD5iRY8tDn3JtAJoIJKc93r461BGdXp3TABAB5eLYex1CNiaudB3wbDcrZEXke4a0YT4ltPgeyg6THaDB+lEC3AMQlh4dvKclP+2QltpsUkRD2S5s=</ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+
+        <md:SingleSignOnService
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+                Location="https://idp.acme.test/sso"/>
+    </md:IDPSSODescriptor>
+</md:EntityDescriptor>
