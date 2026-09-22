@@ -56,14 +56,9 @@ public class HomeController {
     }
 
     @GetMapping("/protected")
-    @ResponseBody
-    public String protectedPage(Authentication authentication) {
-        return """
-                AcmeHR Training
-                Signed in successfully
-                Application session: Active
-                Authenticated principal: %s
-                """.formatted(authentication.getName());
+    public String protectedPage(Authentication authentication, Model model) {
+        model.addAttribute("principalName", authentication.getName());
+        return "protected";
     }
 
     private boolean isAuthenticated(Authentication authentication) {
