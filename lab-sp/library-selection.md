@@ -277,7 +277,16 @@ The final lab configuration will still make the chosen signing behavior explicit
 
 Spring Security/OpenSAML supports decrypting encrypted SAML content when the relying party has the required decryption credentials.
 
-That supports the Day 9 encryption lab.
+That capability is intended to support the Day 9 encryption lab.
+
+A current open Spring Security issue, #19606, reports a namespace-hoisting problem during encrypted-assertion processing that can cause signature verification failures for some signed encrypted assertions. The report states that the behavior was reproduced with Spring Security 7.1.1 and OpenSAML 5.
+
+This does not affect the unencrypted Day 3 baseline.
+
+Before the Day 9 encryption lab is finalized, recheck the issue and the current Spring Security release. If the issue still affects the selected version, upgrade to a fixed version or redesign the lab. Do not work around it by weakening signature validation.
+
+Issue:
+https://github.com/spring-projects/spring-security/issues/19606
 
 The SP private decryption key will remain protected.
 
@@ -820,6 +829,7 @@ Before finalizing the Day 3 lab and before major course releases, recheck:
 - transitive dependency advisories
 - JDK container advisories
 - any security change affecting SAML validation behavior
+- Spring Security issue #19606 before enabling the Day 9 encrypted-assertion lab
 
 If a critical issue appears, stop and reassess before telling learners to use the environment.
 
