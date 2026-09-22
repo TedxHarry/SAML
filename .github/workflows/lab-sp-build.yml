@@ -36,6 +36,15 @@ jobs:
       - name: Verify training SP
         run: mvn -B -ntp verify
 
+      - name: Validate Docker Compose test profile
+        run: docker compose --profile test config --quiet
+
+      - name: Build validation test runner
+        run: docker compose build validation-tests
+
+      - name: Smoke test validation test runner
+        run: docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#validSignedResponseIsAccepted test
+
       - name: Build training SP container
         run: docker build -t acmehr-training-sp:test .
 
