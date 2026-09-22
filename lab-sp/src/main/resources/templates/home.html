@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AcmeHR Training</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 48px 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #dfe3e8;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            color: #5f6b7a;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 28px 0;
+        }
+
+        .status-box {
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .status-label {
+            margin: 0 0 6px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .status-value {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid #1f2937;
+            color: #ffffff;
+            background: #1f2937;
+        }
+
+        .button.secondary {
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .notice {
+            margin-top: 22px;
+            padding: 14px 16px;
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .notice p {
+            margin: 0;
+        }
+
+        .learning-note {
+            margin-top: 28px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .learning-note h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        .learning-note p {
+            line-height: 1.55;
+        }
+
+        @media (max-width: 620px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <section class="card">
+        <h1>AcmeHR Training</h1>
+        <p class="subtitle">
+            Local Service Provider used by the practical Okta SAML course.
+        </p>
+
+        <div class="status-grid">
+            <div class="status-box">
+                <p class="status-label">SAML configuration</p>
+                <p class="status-value"
+                   th:text="${samlConfigured ? 'Ready' : 'Waiting for IDP_METADATA_URL'}">
+                    Waiting for IDP_METADATA_URL
+                </p>
+            </div>
+
+            <div class="status-box">
+                <p class="status-label">AcmeHR application session</p>
+                <p class="status-value"
+                   th:text="${applicationSessionActive ? 'Active' : 'Not active'}">
+                    Not active
+                </p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a class="button"
+               href="/login"
+               th:if="${samlConfigured}">
+                Sign in with Okta
+            </a>
+
+            <a class="button secondary"
+               href="/protected"
+               th:if="${applicationSessionActive}">
+                Open protected page
+            </a>
+        </div>
+
+        <div class="notice" th:unless="${samlConfigured}">
+            <p>
+                SAML login is not configured yet. Set <strong>IDP_METADATA_URL</strong>
+                and restart the application.
+            </p>
+        </div>
+
+        <div class="learning-note">
+            <h2>What this page proves</h2>
+            <p>
+                This page shows the local AcmeHR application state. A successful Okta
+                sign-in is not enough by itself. The AcmeHR application session becomes
+                active only after the SAML login is accepted by the Service Provider.
+            </p>
+        </div>
+    </section>
+</main>
+</body>
+</html>
