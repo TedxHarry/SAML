@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AcmeHR SAML Transaction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 48px 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #dfe3e8;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            color: #5f6b7a;
+            line-height: 1.5;
+        }
+
+        .flow {
+            margin-top: 28px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .step {
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            gap: 14px;
+            align-items: start;
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .step-number {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #1f2937;
+            font-weight: 700;
+        }
+
+        .step h2 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .step p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .status {
+            margin-top: 8px;
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 26px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid #1f2937;
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .learning-note {
+            margin-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .learning-note h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        .learning-note p {
+            line-height: 1.55;
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <section class="card">
+        <h1>AcmeHR SAML Transaction</h1>
+        <p class="subtitle">
+            Day 3 shows the login as a small sequence of steps. Later lessons will open
+            each step and show the SAML fields and validation behind it.
+        </p>
+
+        <div class="flow">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>
+                    <h2>AcmeHR started the SAML login</h2>
+                    <p>The Service Provider sent the browser toward the Identity Provider.</p>
+                    <p class="status">Status: <span th:text="${loginStarted ? 'PASS' : 'NOT CHECKED'}">NOT CHECKED</span></p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>
+                    <h2>The browser returned to AcmeHR</h2>
+                    <p>The browser came back to the Service Provider after the Okta sign-in flow.</p>
+                    <p class="status">Status: <span th:text="${responseReturned ? 'PASS' : 'NOT CHECKED'}">NOT CHECKED</span></p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>
+                    <h2>The Service Provider accepted the SAML login</h2>
+                    <p>
+                        AcmeHR accepted the authentication through the SAML security layer.
+                        The detailed checks stay hidden for now and are taught later.
+                    </p>
+                    <p class="status">Status: <span th:text="${samlAccepted ? 'PASS' : 'NOT CHECKED'}">NOT CHECKED</span></p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div>
+                    <h2>AcmeHR created its application session</h2>
+                    <p>The learner can now open the protected page.</p>
+                    <p class="status">Status: <span th:text="${applicationSessionActive ? 'PASS' : 'NOT CHECKED'}">NOT CHECKED</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a class="button" href="/">Back to home</a>
+            <a class="button"
+               href="/protected"
+               th:if="${applicationSessionActive}">
+                Open protected page
+            </a>
+        </div>
+
+        <div class="learning-note">
+            <h2>How to troubleshoot this page</h2>
+            <p>
+                Start with one question: <strong>What is the last step I can prove succeeded?</strong>
+                Then investigate the next step. Do not change several settings at once.
+            </p>
+        </div>
+    </section>
+</main>
+</body>
+</html>
