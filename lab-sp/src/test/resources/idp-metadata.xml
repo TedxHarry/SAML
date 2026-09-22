@@ -17,6 +17,9 @@
         </md:KeyDescriptor>
 
         <md:SingleSignOnService
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+                Location="https://idp.acme.test/sso"/>
+        <md:SingleSignOnService
                 Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
                 Location="https://idp.acme.test/sso"/>
     </md:IDPSSODescriptor>
