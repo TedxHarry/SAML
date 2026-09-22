@@ -1,0 +1,9 @@
+services:
+  acmehr-training-sp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      IDP_METADATA_URL: ${IDP_METADATA_URL:-}
