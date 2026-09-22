@@ -35,3 +35,29 @@ jobs:
 
       - name: Verify training SP
         run: mvn -B -ntp verify
+
+      - name: Build training SP container
+        run: docker build -t acmehr-training-sp:test .
+
+      - name: Smoke test training SP container
+        run: |
+          docker run -d --name acmehr-training-sp-smoke -p 8000:8000 acmehr-training-sp:test
+
+          cleanup() {
+            docker logs acmehr-training-sp-smoke || true
+            docker rm -f acmehr-training-sp-smoke || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:8000/actuator/health > /tmp/acmehr-health.json; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+
+          test "$ready" = "true"
+          grep -q '"status":"UP"' /tmp/acmehr-health.json
+          curl --fail --silent http://localhost:8000/ | grep -q "Waiting for IDP_METADATA_URL"
