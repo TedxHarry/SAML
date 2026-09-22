@@ -1,0 +1,37 @@
+name: Training SP Build
+
+on:
+  push:
+    paths:
+      - "lab-sp/**"
+      - ".github/workflows/lab-sp-build.yml"
+  pull_request:
+    paths:
+      - "lab-sp/**"
+      - ".github/workflows/lab-sp-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: lab-sp
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: lab-sp/pom.xml
+
+      - name: Verify training SP
+        run: mvn -B -ntp verify
