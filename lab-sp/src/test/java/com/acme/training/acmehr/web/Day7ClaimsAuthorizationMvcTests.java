@@ -28,7 +28,7 @@ class Day7ClaimsAuthorizationMvcTests {
     @Test
     void claimsPageRendersValidatedClaimsAndMappedManagerRole() throws Exception {
         mockMvc.perform(get("/claims")
-                        .with(authentication(authentication(Map.of(
+                        .with(authentication(samlAuthentication(Map.of(
                                 "email", List.of("priya@acme.example"),
                                 "firstName", List.of("Priya"),
                                 "lastName", List.of("Shah"),
@@ -50,7 +50,7 @@ class Day7ClaimsAuthorizationMvcTests {
     @Test
     void claimsPageShowsMissingRequiredClaimWithoutFailingAuthentication() throws Exception {
         mockMvc.perform(get("/claims")
-                        .with(authentication(authentication(Map.of(
+                        .with(authentication(samlAuthentication(Map.of(
                                 "email", List.of("priya@acme.example"),
                                 "firstName", List.of("Priya"),
                                 "lastName", List.of("Shah"),
@@ -66,7 +66,7 @@ class Day7ClaimsAuthorizationMvcTests {
     @Test
     void managerPageAllowsExactAllowlistedManagerGroup() throws Exception {
         mockMvc.perform(get("/manager")
-                        .with(authentication(authentication(Map.of(
+                        .with(authentication(samlAuthentication(Map.of(
                                 "email", List.of("priya@acme.example"),
                                 "firstName", List.of("Priya"),
                                 "lastName", List.of("Shah"),
@@ -83,7 +83,7 @@ class Day7ClaimsAuthorizationMvcTests {
     @Test
     void managerPageReturnsForbiddenWhenAuthenticatedUserLacksManagerGroup() throws Exception {
         mockMvc.perform(get("/manager")
-                        .with(authentication(authentication(Map.of(
+                        .with(authentication(samlAuthentication(Map.of(
                                 "email", List.of("priya@acme.example"),
                                 "firstName", List.of("Priya"),
                                 "lastName", List.of("Shah"),
@@ -97,7 +97,7 @@ class Day7ClaimsAuthorizationMvcTests {
                 .andExpect(content().string(containsString("No application roles mapped")));
     }
 
-    private static Saml2AssertionAuthentication authentication(
+    private static Saml2AssertionAuthentication samlAuthentication(
             Map<String, List<Object>> attributes) {
 
         Saml2ResponseAssertionAccessor assertion = new TestAssertionAccessor(
