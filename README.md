@@ -606,6 +606,8 @@ These will live under `advanced/` after the core course is complete.
 
 The course will be built incrementally. Directories and files will be added only when their content is ready.
 
+Teaching diagrams that explain a lesson concept should live directly inside that lesson, next to the explanation they support. The `diagrams/` folder is reserved only for shared reference diagrams that are reused across multiple lessons, such as an end-to-end transaction map, certificate ownership map, troubleshooting decision tree, or certificate rollover reference.
+
 ```text
 SAML/
 |
@@ -646,11 +648,7 @@ SAML/
 |   └── tests/
 |
 ├── diagrams/
-|   ├── README.md
-|   ├── day-01/
-|   ├── day-02/
-|   ├── ...
-|   └── day-15/
+|   └── README.md
 |
 ├── scripts/
 |   ├── README.md
@@ -775,11 +773,11 @@ Throughout the course:
 - [x] 15-day progression pressure-tested
 - [x] Continuous lab architecture defined
 - [x] Advanced topics separated from the beginner core
-- [ ] Day 1 lesson
-- [ ] Day 1 lab
-- [ ] Day 1 diagrams
-- [ ] Day 1 review and pressure test
-- [ ] Day 1 closed
+- [x] Day 1 lesson
+- [x] Day 1 lab
+- [x] Day 1 teaching diagrams integrated into the lesson
+- [x] Day 1 review and pressure test
+- [x] Day 1 closed
 - [ ] Day 2 and later content
 
 The next course file will be created only after this structure has been reviewed and accepted.
