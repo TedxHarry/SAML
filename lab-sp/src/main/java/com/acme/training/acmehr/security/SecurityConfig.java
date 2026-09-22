@@ -18,7 +18,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/", "/actuator/health", "/error").permitAll()
-                .requestMatchers("/protected").authenticated()
+                .requestMatchers("/protected", "/claims", "/manager").authenticated()
                 .anyRequest().permitAll());
 
         if (relyingParties.getIfAvailable() != null) {
