@@ -266,16 +266,15 @@ The browser then makes a new request to Okta.
 
 ## Common redirect status codes
 
-You may see HTTP status codes such as:
+For the SAML flow we are learning, you will commonly see a redirect such as:
 
 ```text
 302 Found
-303 See Other
-307 Temporary Redirect
-308 Permanent Redirect
 ```
 
-For this course, you do not need to memorize every difference yet.
+You may also encounter other 3xx redirect responses.
+
+Do not memorize the whole 3xx family today.
 
 The important troubleshooting idea is:
 
@@ -623,6 +622,8 @@ DEFLATE decompress
 SAML XML
 ```
 
+One practical caution: some browser tools already display a query-parameter value after URL decoding. Check what the tool is showing you before applying another URL-decode step.
+
 For a SAMLResponse from a normal POST form:
 
 ```text
@@ -757,7 +758,7 @@ Request was successfully handled.
 The browser is being redirected.
 
 4xx
-The request has a client-side or request-related problem.
+The server did not accept or could not fulfill the request as sent.
 
 5xx
 The server encountered a problem while handling the request.
