@@ -140,31 +140,31 @@ At a high level, the flow looks like this:
 
 **Question answered:** Who talks to whom during a normal SAML login?
 
-```text
-User
- |
- v
-Browser
- |
- v
-AcmeHR / SP
- |
- | sends the browser to Okta
- v
-Okta / IdP
- |
- | authenticates the user
- v
-Browser
- |
- | carries the SAML Response
- v
-AcmeHR / SP
- |
- | validates the SAML message
- v
-Application session
+```mermaid
+sequenceDiagram
+    actor User as Acme employee
+    participant Browser
+    participant SP as AcmeHR / Service Provider
+    participant IdP as Okta / Identity Provider
+
+    User->>Browser: Opens AcmeHR
+    Browser->>SP: Requests the application
+    SP-->>Browser: Sends browser to Okta
+    Browser->>IdP: Reaches Okta
+    IdP->>User: Authenticates the employee
+    IdP-->>Browser: Returns the SAML login response
+    Browser->>SP: Carries response back to AcmeHR
+    SP->>SP: Checks the SAML message
+    SP-->>Browser: Creates application session if accepted
 ```
+
+### What to notice
+
+- The **user** is the employee trying to access AcmeHR.
+- **Okta** is the Identity Provider because it authenticates the employee.
+- **AcmeHR** is the Service Provider because it is the application the employee wants to access.
+- The **browser** carries the user and SAML transaction between the two systems.
+- Okta authentication is not the last step. AcmeHR still needs to accept the SAML message before the application session exists.
 
 One important beginner point:
 
@@ -267,6 +267,25 @@ correct as the user changes over time?
 ```
 
 Keep these separate.
+
+**Question answered:** Which part of the project is responsible for login, permissions, and account lifecycle?
+
+```mermaid
+flowchart TD
+    R["Application requirement"] --> Q{"What is the requirement asking for?"}
+
+    Q --> A["Who is the user?"]
+    Q --> B["What can the user do?"]
+    Q --> C["Does the application account exist and stay correct?"]
+
+    A --> AUTHN["Authentication"]
+    B --> AUTHZ["Authorization"]
+    C --> PROV["Provisioning"]
+
+    AUTHN --> SAML["SAML can handle the federation and login exchange"]
+    AUTHZ --> APP["The application decides how identity information maps to permissions"]
+    PROV --> LIFE["Account creation, updates, and disablement are separate lifecycle concerns"]
+```
 
 A lot of bad troubleshooting starts when someone treats all three as the same problem.
 
@@ -466,6 +485,21 @@ Then:
 You are already using the troubleshooting method that will stay with us for the entire course:
 
 > **What is the last step I can prove succeeded?**
+
+**Question answered:** Where should you start when someone says, "SAML login is broken"?
+
+```mermaid
+flowchart TD
+    A["User tries to open AcmeHR"] --> B{"Did the browser reach Okta?"}
+    B -- No --> B1["Investigate before Okta authentication"]
+    B -- Yes --> C{"Did Okta authenticate the user?"}
+    C -- No --> C1["Investigate Okta authentication or policy"]
+    C -- Yes --> D{"Did the browser return to AcmeHR?"}
+    D -- No --> D1["Investigate the return path"]
+    D -- Yes --> E{"Did AcmeHR accept the login?"}
+    E -- No --> E1["Investigate how AcmeHR processed the SAML login"]
+    E -- Yes --> F["Application session created"]
+```
 
 You do not need to know every SAML field yet to start thinking this way.
 
