@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AcmeHR Manager Access</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 48px 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #dfe3e8;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        h2 {
+            margin-top: 28px;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            color: #5f6b7a;
+            line-height: 1.5;
+        }
+
+        .result {
+            margin: 24px 0;
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid #dfe3e8;
+            background: #fafafa;
+        }
+
+        .result.granted {
+            border-color: #15803d;
+            background: #f0fdf4;
+        }
+
+        .result.denied {
+            border-color: #b91c1c;
+            background: #fef2f2;
+        }
+
+        .result strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 18px;
+        }
+
+        .detail {
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 14px 0;
+        }
+
+        .detail-label {
+            margin: 0 0 5px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .detail-value {
+            margin: 0;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        .value-list {
+            margin: 8px 0 0;
+            padding-left: 22px;
+        }
+
+        .value-list li {
+            margin: 5px 0;
+            word-break: break-word;
+        }
+
+        .empty-value {
+            margin: 8px 0 0;
+            color: #6b7280;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid #1f2937;
+            color: #ffffff;
+            background: #1f2937;
+        }
+
+        .button.secondary {
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .learning-note {
+            margin-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .learning-note p {
+            line-height: 1.55;
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <section class="card">
+        <h1>AcmeHR Manager Access</h1>
+        <p class="subtitle">
+            This page demonstrates application authorization after a successful SAML login.
+        </p>
+
+        <div class="result granted" th:if="${accessGranted}">
+            <strong>Access granted</strong>
+            The validated groups claim contained the value that AcmeHR explicitly maps to the MANAGER role.
+        </div>
+
+        <div class="result denied" th:unless="${accessGranted}">
+            <strong>Access denied</strong>
+            Authentication succeeded, but AcmeHR did not map the received groups to the MANAGER role.
+        </div>
+
+        <h2>Authorization evidence</h2>
+
+        <div class="detail">
+            <p class="detail-label">Authenticated principal</p>
+            <p class="detail-value" th:text="${principalName}">
+                priya@acme.example
+            </p>
+        </div>
+
+        <div class="detail">
+            <p class="detail-label">Received validated groups</p>
+            <ul class="value-list" th:if="${!groups.isEmpty()}">
+                <li th:each="group : ${groups}" th:text="${group}">
+                    AcmeHR-Managers
+                </li>
+            </ul>
+            <p class="empty-value" th:if="${groups.isEmpty()}">
+                No group values received.
+            </p>
+        </div>
+
+        <div class="detail">
+            <p class="detail-label">Mapped AcmeHR roles</p>
+            <ul class="value-list" th:if="${!mappedRoles.isEmpty()}">
+                <li th:each="role : ${mappedRoles}" th:text="${role}">
+                    MANAGER
+                </li>
+            </ul>
+            <p class="empty-value" th:if="${mappedRoles.isEmpty()}">
+                No application roles mapped.
+            </p>
+        </div>
+
+        <div class="detail">
+            <p class="detail-label">Manager decision</p>
+            <p class="detail-value"
+               th:text="${accessGranted ? 'ALLOWED' : 'DENIED'}">
+                ALLOWED
+            </p>
+        </div>
+
+        <div class="actions">
+            <a class="button" href="/claims">View validated claims</a>
+            <a class="button secondary" href="/protected">Protected page</a>
+            <a class="button secondary" href="/">Home</a>
+        </div>
+
+        <div class="learning-note">
+            <h2>What this proves</h2>
+            <p th:if="${accessGranted}">
+                The SAML login was already accepted before this decision. AcmeHR then read
+                the validated groups claim, found the exact allowlisted value
+                AcmeHR-Managers, mapped it to MANAGER, and allowed access to this page.
+            </p>
+            <p th:unless="${accessGranted}">
+                The SAML login was already accepted before this decision. AcmeHR did not
+                find the exact allowlisted manager group in the validated claims, so it
+                did not map MANAGER and returned an authorization denial.
+            </p>
+            <p>
+                This is application authorization. It is separate from Okta authentication,
+                SAML validation, and Okta application assignment.
+            </p>
+        </div>
+    </section>
+</main>
+</body>
+</html>
