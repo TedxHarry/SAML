@@ -148,8 +148,9 @@ class SamlResponseValidationTests {
     void wrongIssuerIsRejected() {
         Response response = validResponse();
         response.getIssuer().setValue("https://wrong-idp.acme.test");
+        sign(response.getAssertions().get(0));
 
-        assertRejected(response, Saml2ErrorCodes.INVALID_ISSUER);
+        assertRejectedPrepared(response, Saml2ErrorCodes.INVALID_ISSUER);
     }
 
     @Test
@@ -222,18 +223,26 @@ class SamlResponseValidationTests {
     }
 
     private static Authentication authenticate(Response response) {
+        return authenticatePrepared(sign(response));
+    }
+
+    private static Authentication authenticatePrepared(Response response) {
         OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
         provider.setAssertionValidator(OpenSaml5AuthenticationProvider.AssertionValidator.builder()
                 .clockSkew(TEST_CLOCK_SKEW)
                 .build());
 
-        return Objects.requireNonNull(provider.authenticate(authenticationToken(sign(response))));
+        return Objects.requireNonNull(provider.authenticate(authenticationToken(response)));
     }
 
     private static Saml2AuthenticationException assertRejected(Response response, String expectedErrorCode) {
+        return assertRejectedPrepared(sign(response), expectedErrorCode);
+    }
+
+    private static Saml2AuthenticationException assertRejectedPrepared(Response response, String expectedErrorCode) {
         Saml2AuthenticationException error = assertThrows(
                 Saml2AuthenticationException.class,
-                () -> authenticate(response));
+                () -> authenticatePrepared(response));
 
         assertThat(error.getSaml2Error().getErrorCode()).isEqualTo(expectedErrorCode);
         return error;
@@ -337,6 +346,16 @@ class SamlResponseValidationTests {
     }
 
     private static Response sign(Response response) {
+        signObject(response, "Response");
+        return response;
+    }
+
+    private static Assertion sign(Assertion assertion) {
+        signObject(assertion, "Assertion");
+        return assertion;
+    }
+
+    private static void signObject(org.opensaml.saml.common.SignableSAMLObject object, String objectType) {
         BasicCredential credential = CredentialSupport.getSimpleCredential(TEST_CERTIFICATE, TEST_PRIVATE_KEY);
         credential.setEntityId(IDP_ENTITY_ID);
         credential.setUsageType(UsageType.SIGNING);
@@ -349,11 +368,10 @@ class SamlResponseValidationTests {
                 SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
 
         try {
-            SignatureSupport.signObject(response, parameters);
-            return response;
+            SignatureSupport.signObject(object, parameters);
         }
         catch (MarshallingException | SignatureException | SecurityException ex) {
-            throw new IllegalStateException("Could not sign the synthetic SAML Response", ex);
+            throw new IllegalStateException("Could not sign the synthetic SAML " + objectType, ex);
         }
     }
 
