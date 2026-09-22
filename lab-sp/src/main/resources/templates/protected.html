@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AcmeHR Protected Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 48px 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #dfe3e8;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            color: #5f6b7a;
+        }
+
+        .success {
+            margin: 24px 0;
+            padding: 16px;
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .success strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .detail {
+            margin: 18px 0;
+            padding: 14px 16px;
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            margin: 0 0 5px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .detail-value {
+            margin: 0;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        .actions {
+            margin-top: 24px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid #1f2937;
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .learning-note {
+            margin-top: 28px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .learning-note h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        .learning-note p {
+            line-height: 1.55;
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <section class="card">
+        <h1>AcmeHR Protected Page</h1>
+        <p class="subtitle">
+            This page is available only after the Service Provider accepts the SAML login.
+        </p>
+
+        <div class="success">
+            <strong>Application session: Active</strong>
+            AcmeHR accepted the authentication and created an authenticated application session.
+        </div>
+
+        <div class="detail">
+            <p class="detail-label">Authenticated principal</p>
+            <p class="detail-value" th:text="${principalName}">
+                user@example.com
+            </p>
+        </div>
+
+        <div class="actions">
+            <a class="button" href="/">Back to home</a>
+        </div>
+
+        <div class="learning-note">
+            <h2>What this proves</h2>
+            <p>
+                Reaching this page proves more than a successful Okta sign-in. The browser
+                returned to the Service Provider, the SAML login was accepted, and AcmeHR
+                now has its own authenticated application session.
+            </p>
+        </div>
+    </section>
+</main>
+</body>
+</html>
