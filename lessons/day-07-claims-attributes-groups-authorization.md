@@ -336,7 +336,7 @@ Received SAML value
     Finance
 
 Configured Okta expression
-    user.department
+    user.profile.department
 ~~~
 
 Then inspect the source value.
