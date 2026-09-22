@@ -794,6 +794,21 @@ Throughout the course:
 - [x] Day 3 lab
 - [x] Day 3 final review and pressure test
 - [x] Day 3 course artifact closed
-- [ ] Day 4 and later content
+- [x] Day 4 AuthnRequest lesson
+- [x] Day 4 AuthnRequest lab
+- [x] Day 4 generated AuthnRequest verification
+- [x] Day 4 review and pressure test
+- [x] Day 4 closed
+- [x] Day 5 Response, Assertion, and NameID lesson
+- [x] Day 5 Response lab
+- [x] Day 5 review and pressure test
+- [x] Day 5 closed
+- [x] Day 6 SAML validation lesson
+- [x] Day 6 validation lab
+- [x] Day 6 signed positive and focused negative validation tests
+- [x] Day 6 Docker validation-test runner
+- [x] Day 6 review and pressure test
+- [x] Day 6 closed
+- [ ] Day 7 and later content
 
-Day 3 course development is closed. During the lab, the learner must still prove the live transaction against their own Okta org, including the return to the ACS and creation of the AcmeHR application session, before continuing to Day 4.
+Days 1 through 6 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
