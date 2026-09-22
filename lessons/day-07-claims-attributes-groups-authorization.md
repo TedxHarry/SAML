@@ -189,7 +189,7 @@ SAML attribute name
     department
 
 Okta expression
-    user.department
+    user.profile.department
 ~~~
 
 Those two sides have different jobs.
@@ -198,7 +198,7 @@ Those two sides have different jobs.
 department
     What AcmeHR sees as the claim name
 
-user.department
+user.profile.department
     Where Okta gets the value
 ~~~
 
@@ -222,7 +222,7 @@ Do not confuse the external SAML claim name with the internal Okta profile varia
 
 # 6. Current Okta custom claims experience
 
-Okta introduced a unified claims-generation experience for custom applications and made it generally available in production in 2026.
+Okta's unified claims-generation experience for custom applications became generally available in Production on July 30, 2025, and is the current claims model used in this course.
 
 For SAML applications, this provides a common claims interface for user profile values, groups, and other supported claim sources.
 
@@ -290,13 +290,13 @@ Do not memorize one admin-console layout as if it were part of SAML itself.
 
 Okta Expression Language lets the claim configuration read values from supported profile and application contexts.
 
-Common user-profile examples include:
+In the current unified claims interface, Okta uses Expression Language for Identity Engine. User-profile examples include:
 
 ~~~text
-user.email
-user.firstName
-user.lastName
-user.department
+user.profile.email
+user.profile.firstName
+user.profile.lastName
+user.profile.department
 ~~~
 
 If your org has a custom employee-number attribute, the exact variable name depends on that profile schema.
@@ -304,7 +304,7 @@ If your org has a custom employee-number attribute, the exact variable name depe
 For example, an org might use:
 
 ~~~text
-user.employeeNumber
+user.profile.employeeNumber
 ~~~
 
 Do not copy a variable name merely because another tenant uses it.
@@ -1038,7 +1038,7 @@ Suppose the configured claim is:
 
 ~~~text
 department
-    <- user.department
+    <- user.profile.department
 ~~~
 
 but the Assertion has no usable department.
@@ -1195,7 +1195,7 @@ Okta profile value
     Finance
 
 Expression
-    user.department
+    user.profile.department
 
 SAML claim
     department = Finance
