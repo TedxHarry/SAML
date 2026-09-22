@@ -21,7 +21,8 @@ Underlying SAML engine
     OpenSAML 5 through Spring Security
 
 Build
-    Maven Wrapper
+    Maven
+    pinned in the Docker build image
 
 Delivery
     Docker
@@ -771,20 +772,19 @@ We must not bypass the framework's SAML processing just to obtain a prettier URL
 
 # Build approach
 
-The implementation will use Maven Wrapper.
+The implementation uses Maven through the Docker build and GitHub Actions.
 
-The repository should eventually contain:
+The Day 3 learner does not need Maven installed locally.
+
+The Docker builder image pins the Maven and Java build environment, while `pom.xml` defines the application dependencies.
+
+A Maven Wrapper is not required for the Day 3 learner workflow because the documented build path is:
 
 ```text
-mvnw
-mvnw.cmd
-.mvn/
-pom.xml
+docker compose up --build
 ```
 
-The wrapper lets the Docker build and contributors use a known Maven version without requiring a manually installed Maven runtime.
-
-The exact Maven Wrapper version will be selected when the implementation begins.
+If later contributor workflows need direct local Maven execution, a wrapper can be added then rather than adding unused files now.
 
 ---
 
