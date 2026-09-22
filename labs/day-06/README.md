@@ -1278,7 +1278,7 @@ The edit damaged the signature. Build the wrong Audience into the fixture first,
 
 ---
 
-# Part 40: Explain the complete acceptance decision
+# Explain it back
 
 Use your successful live transaction and one automated negative test.
 
