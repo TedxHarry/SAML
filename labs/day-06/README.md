@@ -38,7 +38,7 @@ You need:
 - the Response-decoding steps from Day 5
 - the assigned Okta test user
 - Docker with Docker Compose for the live transaction
-- Java 21 and Maven for the automated validation tests
+- Docker with Docker Compose for the automated validation tests
 - a browser with Developer Tools
 - Python 3 for local decoding
 
@@ -595,19 +595,25 @@ These tests do not call your Okta org.
 
 ---
 
-# Part 17: Run the complete validation test group
+# Part 17: Build the validation-test container
 
-From the `lab-sp` directory, run:
+From the `lab-sp` directory, build the dedicated test runner:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests,SamlResponseRejectionTests test
+docker compose build validation-tests
 ```
 
-PowerShell uses the same command:
+The test runner uses the same pinned Java 21 and Maven environment as the training SP build.
 
-```powershell
-mvn -B -ntp -Dtest=SamlResponseValidationTests,SamlResponseRejectionTests test
+You do not need Java or Maven installed directly on your computer.
+
+Now run the complete validation test group:
+
+```bash
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests,SamlResponseRejectionTests test
 ```
+
+The same command works in PowerShell.
 
 Expected Maven result:
 
@@ -630,7 +636,7 @@ Use this table to connect each test input with its expected result.
 | Test case | One changed property | Expected provider result |
 | --- | --- | --- |
 | known-good signed Response | none | authenticated |
-| wrong issuer | Response or Assertion issuer | rejected |
+| wrong issuer | Response Issuer | rejected as invalid issuer |
 | wrong audience | Assertion Audience | rejected as invalid Assertion |
 | wrong destination | Response Destination | rejected as invalid destination |
 | wrong recipient | bearer Recipient | rejected as invalid Assertion |
@@ -652,7 +658,7 @@ The detailed validation message and the changed fixture field identify the speci
 Run the positive control:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#validSignedResponseIsAccepted test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#validSignedResponseIsAccepted test
 ```
 
 Expected result:
@@ -674,7 +680,7 @@ If the positive control fails, stop. A negative result from the other tests woul
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongIssuerIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongIssuerIsRejected test
 ```
 
 Record:
@@ -695,9 +701,11 @@ Authentication created
 
 Explain the cause in one sentence:
 
-> The signed Response was rejected because its issuer did not match the configured IdP entity ID.
+> The Response was rejected because its issuer did not match the configured IdP entity ID.
 
-Do not report this as an Audience failure.
+This test deliberately leaves the outer Response unsigned and signs the Assertion with the trusted test key. That keeps acceptable signature protection in place while allowing the Response issuer validator to be tested directly.
+
+Do not report this as an Audience or signature failure.
 
 ---
 
@@ -706,7 +714,7 @@ Do not report this as an Audience failure.
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongAudienceIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongAudienceIsRejected test
 ```
 
 Record:
@@ -736,7 +744,7 @@ The changed Audience is therefore the controlled reason for rejection.
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongDestinationIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongDestinationIsRejected test
 ```
 
 Record:
@@ -766,7 +774,7 @@ It is different from an HTTP 404 where the POST never reaches the SAML processin
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongRecipientIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongRecipientIsRejected test
 ```
 
 Record:
@@ -796,7 +804,7 @@ Both cases involve the ACS URL, but they fail at different fields and validator 
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongResponseInResponseToIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongResponseInResponseToIsRejected test
 ```
 
 Record:
@@ -826,7 +834,7 @@ It does not say that the user entered the wrong password.
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongConfirmationInResponseToIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#wrongConfirmationInResponseToIsRejected test
 ```
 
 Record the saved request ID and the value inside `SubjectConfirmationData`.
@@ -850,7 +858,7 @@ The outer Response correlation and inner bearer-confirmation correlation are sep
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#notYetValidAssertionIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#notYetValidAssertionIsRejected test
 ```
 
 Open the test and record:
@@ -880,7 +888,7 @@ Do not change your computer clock for this exercise.
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#expiredAssertionConditionsAreRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#expiredAssertionConditionsAreRejected test
 ```
 
 Record:
@@ -908,7 +916,7 @@ Confirm that the cutoff is far enough in the past to remain expired after the al
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#expiredBearerConfirmationIsRejected test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#expiredBearerConfirmationIsRejected test
 ```
 
 This case keeps the Assertion Conditions valid while expiring only:
@@ -938,7 +946,7 @@ The bearer subject confirmation was expired.
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseRejectionTests#unsignedSamlResponseDoesNotCreateAuthenticatedSession test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseRejectionTests#unsignedSamlResponseDoesNotCreateAuthenticatedSession test
 ```
 
 The unsigned fixture contains reasonable-looking values for:
@@ -1042,7 +1050,7 @@ Do not claim that `invalid_assertion` names the exact field by itself.
 After the focused tests pass, run the complete project verification:
 
 ```bash
-mvn -B -ntp verify
+docker compose run --rm validation-tests mvn -B -ntp verify
 ```
 
 Expected result:
@@ -1066,16 +1074,16 @@ If a validation test fails, use these checks in order.
 Run:
 
 ```bash
-mvn -B -ntp -Dtest=SamlResponseValidationTests#validSignedResponseIsAccepted test
+docker compose run --rm validation-tests mvn -B -ntp -Dtest=SamlResponseValidationTests#validSignedResponseIsAccepted test
 ```
 
 If this fails, investigate the fixture, signing credential, registration, and current dependency versions before trusting any negative case.
 
 ---
 
-## Check 2: Did Maven select the method?
+## Check 2: Did Maven inside the test container select the method?
 
-Read the Maven output and confirm that it ran the named class and method.
+Read the Maven output from the container and confirm that it ran the named class and method.
 
 A typing error in the method selector can produce a different failure from the SAML test itself.
 
@@ -1083,18 +1091,24 @@ Copy the method name from the source file.
 
 ---
 
-## Check 3: Is the test Java version correct?
+## Check 3: Is the test container current?
 
-Run:
+The validation-test service is built from the repository's pinned Maven and Java builder image.
+
+If the repository changed after you built the test runner, rebuild it:
 
 ```bash
-java -version
-mvn -version
+docker compose build validation-tests
 ```
 
-The project requires Java 21.
+If you want to confirm the runtime versions inside the test image, run:
 
-Confirm that Maven also reports Java 21, not only the standalone `java` command.
+```bash
+docker compose run --rm validation-tests java -version
+docker compose run --rm validation-tests mvn -version
+```
+
+The Java runtime should report Java 21.
 
 ---
 
@@ -1336,7 +1350,7 @@ You are finished with Day 6 only when you can prove all of these:
 
 [ ] I recorded expected value, received value, error category, and result for every case
 
-[ ] I ran the complete Maven verification successfully
+[ ] I ran the complete Maven verification successfully through the Docker test runner
 
 [ ] I can explain why BUILD SUCCESS on a negative test means the invalid message was rejected
 ```
