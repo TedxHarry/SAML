@@ -975,11 +975,13 @@ For the Day 3 lab, the minimum useful SP needs:
 - Okta IdP metadata configuration
 - secure SAML Response processing
 - local application session
-- simple PASS/FAIL transaction summary
+- simple Day 3 transaction summary using PASS and NOT CHECKED
 - Dockerized startup
 - known reset procedure
 
 That is enough to create the first working end-to-end transaction.
+
+Day 3 does not invent a FAIL status when the application has no stored evidence for a specific failed stage. Explicit FAIL states are added later only when the SP captures evidence that a particular validation or processing stage failed.
 
 ---
 
