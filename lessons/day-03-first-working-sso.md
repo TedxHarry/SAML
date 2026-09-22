@@ -116,7 +116,9 @@ We will understand each one before touching the Okta fields.
 
 After Okta authenticates Priya, the browser needs to send the SAML Response somewhere on AcmeHR.
 
-That receiving endpoint is called the **Assertion Consumer Service**, usually shortened to **ACS**.
+That receiving location is called the **Assertion Consumer Service**, usually shortened to **ACS**.
+
+An **endpoint** is simply a URL where a system expects to receive a particular type of request. The ACS is one such endpoint on the Service Provider.
 
 For our training application, we will use an ACS URL similar to:
 
@@ -248,6 +250,8 @@ A typical Service Provider needs enough information to know things such as:
 - which IdP identifier represents Okta
 - which public certificate is associated with Okta's SAML signing
 - which endpoints are available
+
+You do not need to understand the certificate yet. We will open certificate ownership and signing on Day 8.
 
 Instead of copying each value manually, SAML commonly uses **metadata**.
 
