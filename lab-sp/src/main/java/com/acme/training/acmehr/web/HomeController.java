@@ -8,10 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-@RestController
+@Controller
 public class HomeController {
 
     private static final String SAML_LOGIN_START = "/saml2/authenticate/acmehr";
@@ -23,28 +25,18 @@ public class HomeController {
     }
 
     @GetMapping("/")
-    public String home(Authentication authentication) {
+    public String home(Authentication authentication, Model model) {
         boolean samlConfigured = relyingParties.getIfAvailable() != null;
         boolean applicationSessionActive = isAuthenticated(authentication);
 
-        return """
-                AcmeHR Training
-                Status: Application is running
-                SAML configuration: %s
-                Application session: %s
+        model.addAttribute("samlConfigured", samlConfigured);
+        model.addAttribute("applicationSessionActive", applicationSessionActive);
 
-                Sign in with Okta:
-                %s
-
-                Protected page:
-                /protected
-                """.formatted(
-                samlConfigured ? "Ready" : "Waiting for IDP_METADATA_URL",
-                applicationSessionActive ? "Active" : "Not active",
-                samlConfigured ? "/login" : "Unavailable until IDP_METADATA_URL is configured");
+        return "home";
     }
 
     @GetMapping("/login")
+    @ResponseBody
     public ResponseEntity<String> login() {
         if (relyingParties.getIfAvailable() == null) {
             return ResponseEntity
@@ -64,6 +56,7 @@ public class HomeController {
     }
 
     @GetMapping("/protected")
+    @ResponseBody
     public String protectedPage(Authentication authentication) {
         return """
                 AcmeHR Training
