@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AcmeHR SAML Claims</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 48px 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #dfe3e8;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            color: #5f6b7a;
+            line-height: 1.5;
+        }
+
+        .status {
+            margin: 24px 0;
+            padding: 16px;
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .status strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .warning {
+            margin: 24px 0;
+            padding: 16px;
+            border: 1px solid #b45309;
+            border-radius: 10px;
+            background: #fffbeb;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .claim-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .claim {
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+
+        .claim-label {
+            margin: 0 0 5px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .claim-value {
+            margin: 0;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        .missing {
+            color: #92400e;
+        }
+
+        .value-list {
+            margin: 8px 0 0;
+            padding-left: 22px;
+        }
+
+        .value-list li {
+            margin: 5px 0;
+            word-break: break-word;
+        }
+
+        .empty-value {
+            margin: 8px 0 0;
+            color: #6b7280;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid #1f2937;
+            color: #ffffff;
+            background: #1f2937;
+        }
+
+        .button.secondary {
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .learning-note {
+            margin-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .learning-note p {
+            line-height: 1.55;
+        }
+
+        @media (max-width: 680px) {
+            .claim-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <section class="card">
+        <h1>AcmeHR SAML Claims</h1>
+        <p class="subtitle">
+            These values come from the authenticated SAML result after Spring Security
+            has accepted the login. This page does not manually trust values from the
+            browser POST.
+        </p>
+
+        <div class="status">
+            <strong>Application session: Active</strong>
+            AcmeHR has an authenticated SAML session and can now read the validated claims.
+        </div>
+
+        <div class="warning" th:if="${hasMissingRequiredClaims}">
+            <strong>Required AcmeHR claim missing</strong>
+            <span>The SAML login was accepted, but AcmeHR did not receive every required profile claim.</span>
+            <ul class="value-list">
+                <li th:each="claim : ${missingRequiredClaims}" th:text="${claim}">
+                    employeeNumber
+                </li>
+            </ul>
+        </div>
+
+        <h2>Validated profile claims</h2>
+
+        <div class="claim-grid">
+            <div class="claim">
+                <p class="claim-label">Authenticated principal</p>
+                <p class="claim-value" th:text="${principalName}">priya@acme.example</p>
+            </div>
+
+            <div class="claim">
+                <p class="claim-label">email</p>
+                <p class="claim-value"
+                   th:classappend="${email == null} ? ' missing'"
+                   th:text="${email != null ? email : 'MISSING'}">
+                    priya@acme.example
+                </p>
+            </div>
+
+            <div class="claim">
+                <p class="claim-label">firstName</p>
+                <p class="claim-value"
+                   th:classappend="${firstName == null} ? ' missing'"
+                   th:text="${firstName != null ? firstName : 'MISSING'}">
+                    Priya
+                </p>
+            </div>
+
+            <div class="claim">
+                <p class="claim-label">lastName</p>
+                <p class="claim-value"
+                   th:classappend="${lastName == null} ? ' missing'"
+                   th:text="${lastName != null ? lastName : 'MISSING'}">
+                    Shah
+                </p>
+            </div>
+
+            <div class="claim">
+                <p class="claim-label">employeeNumber</p>
+                <p class="claim-value"
+                   th:classappend="${employeeNumber == null} ? ' missing'"
+                   th:text="${employeeNumber != null ? employeeNumber : 'MISSING'}">
+                    E10427
+                </p>
+            </div>
+
+            <div class="claim">
+                <p class="claim-label">department</p>
+                <p class="claim-value"
+                   th:classappend="${department == null} ? ' missing'"
+                   th:text="${department != null ? department : 'MISSING'}">
+                    Finance
+                </p>
+            </div>
+        </div>
+
+        <h2>Validated groups</h2>
+
+        <div class="claim">
+            <p class="claim-label">groups</p>
+            <ul class="value-list" th:if="${!groups.isEmpty()}">
+                <li th:each="group : ${groups}" th:text="${group}">
+                    AcmeHR-Employees
+                </li>
+            </ul>
+            <p class="empty-value" th:if="${groups.isEmpty()}">
+                No group values received.
+            </p>
+        </div>
+
+        <h2>AcmeHR role mapping</h2>
+
+        <div class="claim">
+            <p class="claim-label">Mapped application roles</p>
+            <ul class="value-list" th:if="${!mappedRoles.isEmpty()}">
+                <li th:each="role : ${mappedRoles}" th:text="${role}">
+                    MANAGER
+                </li>
+            </ul>
+            <p class="empty-value" th:if="${mappedRoles.isEmpty()}">
+                No AcmeHR roles mapped from the received groups.
+            </p>
+        </div>
+
+        <div class="actions">
+            <a class="button" href="/manager">Test manager access</a>
+            <a class="button secondary" href="/protected">Protected page</a>
+            <a class="button secondary" href="/">Home</a>
+        </div>
+
+        <div class="learning-note">
+            <h2>What this page proves</h2>
+            <p>
+                A claim appearing here has passed through the SAML authentication flow and
+                is being read from the authenticated assertion. The groups section shows
+                all received group values. The role section shows only the values that
+                AcmeHR explicitly maps to application roles.
+            </p>
+            <p>
+                A missing required claim does not automatically mean authentication failed.
+                A received group also does not automatically become an AcmeHR permission.
+                Those are separate application decisions.
+            </p>
+        </div>
+    </section>
+</main>
+</body>
+</html>
