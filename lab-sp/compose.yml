@@ -7,3 +7,16 @@ services:
       - "8000:8000"
     environment:
       IDP_METADATA_URL: ${IDP_METADATA_URL:-}
+
+  validation-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    profiles:
+      - test
+    command:
+      - mvn
+      - -B
+      - -ntp
+      - verify
