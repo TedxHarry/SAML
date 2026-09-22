@@ -24,7 +24,7 @@ public class SamlRelyingPartyConfig {
 
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(
-            @Value("\${acmehr.saml.idp-metadata-url}") String idpMetadataUrl) {
+            @Value("${acmehr.saml.idp-metadata-url}") String idpMetadataUrl) {
 
         RelyingPartyRegistration registration = RelyingPartyRegistrations
                 .fromMetadataLocation(idpMetadataUrl)
