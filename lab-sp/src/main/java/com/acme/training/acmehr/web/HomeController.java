@@ -61,6 +61,18 @@ public class HomeController {
         return "protected";
     }
 
+    @GetMapping("/transaction")
+    public String transaction(Authentication authentication, Model model) {
+        boolean applicationSessionActive = isAuthenticated(authentication);
+
+        model.addAttribute("loginStarted", applicationSessionActive);
+        model.addAttribute("responseReturned", applicationSessionActive);
+        model.addAttribute("samlAccepted", applicationSessionActive);
+        model.addAttribute("applicationSessionActive", applicationSessionActive);
+
+        return "transaction";
+    }
+
     private boolean isAuthenticated(Authentication authentication) {
         return authentication != null
                 && authentication.isAuthenticated()
