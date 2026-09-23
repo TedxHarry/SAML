@@ -621,7 +621,7 @@ SAML/
 |   ├── day-04-authnrequest.md
 |   ├── day-05-response-assertion-nameid.md
 |   ├── day-06-saml-validation.md
-|   ├── day-07-claims-attributes-groups.md
+|   ├── day-07-claims-attributes-groups-authorization.md
 |   ├── day-08-signing-certificates.md
 |   ├── day-09-request-signing-encryption.md
 |   ├── day-10-okta-access-jit-scim.md
@@ -809,6 +809,14 @@ Throughout the course:
 - [x] Day 6 Docker validation-test runner
 - [x] Day 6 review and pressure test
 - [x] Day 6 closed
-- [ ] Day 7 and later content
+- [x] Day 7 claims, attributes, groups, and authorization lesson
+- [x] Day 7 claims and authorization lab
+- [x] Day 7 current Okta custom-claims UI and Expression Language verification
+- [x] Day 7 validated-claim mapper and explicit AcmeHR manager-role allowlist
+- [x] Day 7 claims and manager learner views
+- [x] Day 7 mapper and MVC authorization tests
+- [x] Day 7 final review and pressure test
+- [x] Day 7 closed
+- [ ] Day 8 and later content
 
-Days 1 through 6 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
+Days 1 through 7 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
