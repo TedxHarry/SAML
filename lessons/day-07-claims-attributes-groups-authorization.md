@@ -226,21 +226,25 @@ Okta's unified claims-generation experience for custom applications became gener
 
 For SAML applications, this provides a common claims interface for user profile values, groups, and other supported claim sources.
 
-In a current Identity Engine org, you may see the application's SAML claim configuration under an area such as:
+In the current Identity Engine documentation, custom SAML claims are managed after the application is created:
 
 ~~~text
-Application
+Applications and Resources
+    ->
+Applications
+    ->
+AcmeHR Training
     ->
 Sign On
     ->
-SAML Attributes
+Attribute Statements
     ->
-Edit
+Add expression
 ~~~
 
-Some org configurations can show the relevant controls under an Authentication tab instead.
+The current interface uses Expression Language for Okta Identity Engine.
 
-The important concept is not the exact tab label.
+Legacy claims can still coexist under **Show legacy configuration**, but this course uses the current interface first.
 
 The current model is:
 
@@ -353,7 +357,7 @@ A normal single-valued claim can look like:
 </saml2:Attribute>
 ~~~
 
-Spring Security can expose the validated AttributeStatement values to the authenticated principal.
+Spring Security 7 exposes validated Assertion attributes through the authenticated SAML result. In the current training SP, AcmeHR reads them from the `Saml2ResponseAssertionAccessor` carried by `Saml2AssertionAuthentication`.
 
 For a value that is expected to be single-valued, application code can read the first value.
 
@@ -439,9 +443,9 @@ Do not assume in advance that Okta must produce:
 </saml2:Attribute>
 ~~~
 
-The actual output depends on the claim configuration and source value.
+In the current unified custom-claims interface used by this course, Okta documents that a SAML attribute-statement expression that evaluates to empty is omitted from the SAML Response.
 
-The correct troubleshooting evidence is the Assertion that was actually generated.
+Legacy configurations can differ, so the final troubleshooting evidence is still the Assertion that was actually generated.
 
 ---
 
@@ -1440,6 +1444,9 @@ The Day 7 lab will configure the claims, inspect the live Assertion, extend Acme
 ---
 
 # Official references used for this lesson
+
+- Okta, Configure custom claims for app integrations:
+  https://help.okta.com/oie/en-us/content/topics/apps/federated-claims-overview.htm
 
 - Okta Identity Engine 2026 release notes, unified claims generation:
   https://developer.okta.com/docs/release-notes/2026-okta-identity-engine/
