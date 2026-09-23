@@ -51,7 +51,7 @@ The SP should grow with the course rather than being replaced by a different app
 
 # What the training SP is responsible for
 
-The SP must eventually be able to:
+The SP must be able to:
 
 - expose a protected AcmeHR page
 - start SP-initiated SAML SSO
@@ -60,6 +60,10 @@ The SP must eventually be able to:
 - receive the SAML Response at its ACS endpoint
 - validate the SAML login securely
 - create its own application session after successful validation
+- expose validated SAML claims for the Day 7 data-mapping lesson
+- keep multi-valued group claims intact
+- map only explicitly allowlisted group values to AcmeHR roles
+- return an authorization denial without pretending authentication failed
 - show learner-friendly transaction evidence
 - support IdP-initiated SSO later in the course
 - sign AuthnRequests for the request-signing lesson
@@ -204,6 +208,84 @@ The page should support progressive disclosure.
 
 ---
 
+## 4. Claims view
+
+Current endpoint:
+
+```text
+/claims
+```
+
+Purpose:
+
+> Show the identity data AcmeHR received from the already-validated SAML Assertion.
+
+The page currently shows:
+
+- authenticated principal
+- email
+- first name
+- last name
+- employee number
+- department
+- the complete groups collection
+- mapped AcmeHR roles
+- required claims that are missing
+
+The page must not manually trust values copied from the raw browser POST.
+
+It reads attributes from Spring Security's authenticated SAML assertion after validation has succeeded.
+
+A missing required profile claim is shown as a data-contract problem. It does not automatically invalidate the already-established SAML authentication.
+
+---
+
+## 5. Manager authorization view
+
+Current endpoint:
+
+```text
+/manager
+```
+
+Purpose:
+
+> Prove that application authorization is a separate decision after authentication.
+
+The current allowlist is intentionally small:
+
+```text
+AcmeHR-Managers
+    ->
+MANAGER
+```
+
+If the exact validated group value is present, the page returns:
+
+```text
+HTTP 200
+Access granted
+```
+
+If the user is authenticated but the exact group is not present, the page returns:
+
+```text
+HTTP 403
+Access denied
+```
+
+Case variants and unrelated group names do not grant the role.
+
+The page therefore teaches:
+
+```text
+SAML authentication
+    !=
+application authorization
+```
+
+---
+
 # Progressive disclosure
 
 The SP knows more than the learner knows on Day 3.
@@ -257,8 +339,16 @@ NameID
 
 Attributes
 
+Groups
+
+Mapped application roles
+
+Application authorization
+
 Application session
 ```
+
+By Day 7, the learner can inspect validated claims through `/claims` and prove manager authorization through `/manager`.
 
 The course should reveal each layer when it becomes teachable.
 
@@ -390,6 +480,18 @@ AcmeHR application session
 A successful Okta authentication must not automatically create the AcmeHR session unless the SAML transaction is accepted by the SP.
 
 The UI should make the AcmeHR session state visible.
+
+Day 7 adds another distinction:
+
+```text
+AcmeHR authenticated session
+    !=
+AcmeHR manager authorization
+```
+
+An authenticated user can receive HTTP 403 from `/manager` while keeping a valid AcmeHR application session.
+
+That is an authorization denial, not an authentication failure.
 
 ---
 
@@ -885,7 +987,7 @@ Do not create a large infrastructure stack for a small teaching SP.
 
 # Current repository layout
 
-The Day 3 implementation now uses the standard Maven project structure:
+The training SP uses the standard Maven project structure:
 
 ```text
 lab-sp/
@@ -897,11 +999,26 @@ lab-sp/
 └── src/
     ├── main/
     │   ├── java/
+    │   │   └── com/acme/training/acmehr/
+    │   │       ├── security/
+    │   │       │   ├── SamlRelyingPartyConfig.java
+    │   │       │   ├── SecurityConfig.java
+    │   │       │   └── AcmeHrClaimMapper.java
+    │   │       └── web/
+    │   │           └── HomeController.java
     │   └── resources/
+    │       └── templates/
+    │           ├── home.html
+    │           ├── protected.html
+    │           ├── transaction.html
+    │           ├── claims.html
+    │           └── manager.html
     └── test/
         ├── java/
         └── resources/
 ```
+
+Day 7 added the claim mapper and the `/claims` and `/manager` learner views.
 
 Later certificate, diagnostic, and lesson-specific files should be added only when their purpose becomes necessary.
 
@@ -913,24 +1030,35 @@ We do not need empty placeholder folders merely to make the repository look comp
 
 The training SP itself needs automated tests.
 
-At minimum, the implementation should eventually test:
+Current automated coverage includes:
 
 - application starts
 - metadata endpoint is available
-- login route starts SAML flow
-- ACS rejects malformed input
-- known-good SAML transaction fixture is accepted where appropriate
+- protected routes start the SAML flow
+- generated AuthnRequest fields match the training configuration
+- unsigned SAML content is rejected
+- known-good signed SAML Response is accepted
 - wrong issuer is rejected
 - wrong Audience is rejected
-- invalid signature is rejected
-- expired assertion is rejected
-- wrong correlation is rejected where applicable
-- request signing works when enabled
-- encrypted assertion can be decrypted when enabled
-- failure toggles restore correctly
-- application session is created only after accepted SAML validation
+- wrong Destination is rejected
+- wrong Recipient is rejected
+- wrong Response correlation is rejected
+- wrong bearer-confirmation correlation is rejected
+- not-yet-valid and expired assertion conditions are rejected
+- expired bearer confirmation is rejected
+- required Day 7 claims are read from the validated assertion
+- multi-valued groups remain a collection
+- only the exact `AcmeHR-Managers` value maps to `MANAGER`
+- unrelated and differently cased groups do not receive `MANAGER`
+- missing required claims are reported without pretending authentication failed
+- `/claims` renders the validated claim evidence
+- `/manager` returns HTTP 200 for a mapped manager
+- `/manager` returns HTTP 403 for an authenticated non-manager
+- unauthenticated `/claims` and `/manager` requests start SAML login
+- Docker Compose test profile builds and runs
+- training SP container builds and passes its startup smoke test
 
-The exact fixture design will depend on the selected library.
+Later security-sensitive lessons still need their own focused coverage for request signing, encryption, certificate rollover, IdP-initiated behavior, and logout.
 
 ---
 
@@ -1105,6 +1233,70 @@ A repository test cannot impersonate the learner's real Okta org. The live lab t
 ```
 
 The learner should not continue to Day 4 until those live checks pass.
+
+---
+
+# Day 7 implementation status
+
+The repository now contains the application-side pieces needed by the Day 7 claims and authorization lab.
+
+## Proven automatically
+
+```text
+[x] /claims requires authentication
+
+[x] /manager requires authentication
+
+[x] Validated SAML attributes are read through Spring Security 7.1 assertion accessors
+
+[x] email, firstName, lastName, employeeNumber, and department are treated as required AcmeHR profile claims
+
+[x] groups remains multi-valued
+
+[x] AcmeHR-Managers maps to MANAGER
+
+[x] Unrelated groups do not become application roles
+
+[x] Group-name matching is exact and case-sensitive
+
+[x] Missing required claims remain visible after successful authentication
+
+[x] /claims renders the validated claim data
+
+[x] /manager returns HTTP 200 for a mapped manager
+
+[x] /manager returns HTTP 403 for an authenticated user without MANAGER
+
+[x] Unauthenticated /claims and /manager requests start SAML login
+```
+
+## Proven during the learner's live Day 7 Okta lab
+
+```text
+[ ] Okta sends the configured profile claims
+
+[ ] Okta sends the selected AcmeHR group values
+
+[ ] The live AttributeStatement matches the claim contract
+
+[ ] The /claims page matches the live Assertion
+
+[ ] AcmeHR-Managers produces MANAGER
+
+[ ] /manager is allowed for the manager baseline
+
+[ ] Wrong employeeNumber claim name is isolated and restored
+
+[ ] Missing department is observed and restored
+
+[ ] Wrong group filter removes manager authorization while authentication still succeeds
+
+[ ] The known-good Day 7 state is restored
+```
+
+Repository tests prove the application behavior.
+
+The live lab proves the learner's Okta tenant is sending the expected claims.
 
 ---
 
