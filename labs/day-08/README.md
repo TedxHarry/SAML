@@ -1152,7 +1152,7 @@ Without it, a rejection could come from a broken fixture rather than the one cha
 
 ---
 
-# Part 29: Prove tampering fails at the signature layer
+# Part 27: Prove tampering fails at the signature layer
 
 Open:
 
@@ -1222,7 +1222,7 @@ The signature layer fails first.
 
 ---
 
-# Part 30: Prove the wrong trusted certificate fails
+# Part 28: Prove the wrong trusted certificate fails
 
 In the same test file, find:
 
