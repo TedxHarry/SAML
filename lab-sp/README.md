@@ -1038,6 +1038,9 @@ Current automated coverage includes:
 - generated AuthnRequest fields match the training configuration
 - unsigned SAML content is rejected
 - known-good signed SAML Response is accepted
+- signed SAML that is changed after signing is rejected with `INVALID_SIGNATURE`
+- the same signed SAML succeeds with the matching trusted IdP certificate
+- the same signed SAML is rejected with `INVALID_SIGNATURE` when AcmeHR trusts a different certificate
 - wrong issuer is rejected
 - wrong Audience is rejected
 - wrong Destination is rejected
@@ -1058,7 +1061,7 @@ Current automated coverage includes:
 - Docker Compose test profile builds and runs
 - training SP container builds and passes its startup smoke test
 
-Later security-sensitive lessons still need their own focused coverage for request signing, encryption, certificate rollover, IdP-initiated behavior, and logout.
+Later security-sensitive lessons still need their own focused coverage for request signing, encryption, certificate rollover, IdP-initiated behavior, and logout. Day 8 response-signature integrity and IdP verification-trust failures are now covered.
 
 ---
 
@@ -1297,6 +1300,105 @@ The repository now contains the application-side pieces needed by the Day 7 clai
 Repository tests prove the application behavior.
 
 The live lab proves the learner's Okta tenant is sending the expected claims.
+
+---
+
+# Day 8 implementation status
+
+The repository now contains the focused signature-validation tests needed by the Day 8 signing and IdP-certificate lab.
+
+Day 8 keeps the learner's live Okta signing certificate unchanged for failure testing. Certificate rollover remains a later operational exercise.
+
+## Proven automatically
+
+```text
+[x] A known-good signed SAML Response authenticates with the matching trusted verification certificate
+
+[x] Unsigned SAML does not create an authenticated session
+
+[x] Signed XML changed after signing is rejected with INVALID_SIGNATURE
+
+[x] The tampered test changes the signed content without re-signing it
+
+[x] The same signed SAML is accepted with the matching trusted certificate
+
+[x] The same signed SAML is rejected with INVALID_SIGNATURE when AcmeHR trusts a different certificate
+
+[x] The wrong-certificate test changes verification trust without changing the signed SAML
+
+[x] Spring Security and OpenSAML perform the cryptographic verification
+
+[x] No hand-written XML signature verifier is used
+
+[x] Day 8 negative tests run through the existing Maven and Docker validation-test workflow
+```
+
+The focused Day 8 tests are:
+
+```text
+SamlResponseRejectionTests
+    unsignedSamlResponseDoesNotCreateAuthenticatedSession
+
+SamlSignatureValidationTests
+    tamperedSignedResponseIsRejectedAsInvalidSignature
+
+    responseSignedByCertificateThatAcmeHrDoesNotTrustIsRejected
+```
+
+These tests isolate three different trust outcomes:
+
+```text
+No required signature protection
+    -> rejected
+
+Signed content changed after signing
+    -> INVALID_SIGNATURE
+
+Signed content unchanged, wrong trusted verification certificate
+    -> INVALID_SIGNATURE
+```
+
+The last two produce the same signature-layer error while having different root causes.
+
+That distinction is intentional.
+
+## Proven during the learner's live Day 8 Okta lab
+
+```text
+[ ] The learner records the original Response and Assertion signing settings
+
+[ ] The active Okta SAML signing certificate is identified without rotating it
+
+[ ] IdP metadata verification-certificate fingerprints are recorded locally
+
+[ ] A fresh live SAMLResponse is captured and decoded locally
+
+[ ] The signed object is identified from ds:Signature location and Reference URI
+
+[ ] SignatureMethod and DigestMethod are recorded from the live XML
+
+[ ] Embedded KeyInfo certificate material, when present, is treated as evidence rather than automatic trust
+
+[ ] A both-signed Okta transaction is accepted
+
+[ ] An Assertion-only signed transaction is accepted by this training SP
+
+[ ] A Response-only signed transaction is accepted by this training SP
+
+[ ] The learner runs the unsigned-SAML rejection test
+
+[ ] The learner runs the tampered-signature test
+
+[ ] The learner runs the wrong-trusted-certificate test
+
+[ ] The original Okta signing settings are restored
+
+[ ] The restored live SAML baseline is proven again
+```
+
+Repository tests prove the local Service Provider's signature-enforcement behavior.
+
+The live lab proves the learner can connect Okta signing configuration, certificate evidence, SAML XML, and AcmeHR acceptance without weakening validation or rotating the live certificate.
 
 ---
 
