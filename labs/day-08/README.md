@@ -1118,6 +1118,23 @@ The repository now contains:
 lab-sp/src/test/java/com/acme/training/acmehr/security/SamlSignatureValidationTests.java
 ~~~
 
+That test file contains a certificate and private key committed only as a reproducible synthetic fixture.
+
+Treat them as public training material:
+
+~~~text
+safe for this repository test
+    YES
+
+secret
+    NO
+
+safe to reuse in a real app or tenant
+    NO
+~~~
+
+Never copy that test private key into Okta, another Service Provider, or any real environment.
+
 Run only that class:
 
 ## macOS or Linux
@@ -1799,7 +1816,9 @@ Do not save:
 - MFA codes
 - session cookies
 - production assertions
-- private keys
+- private keys from any real environment
+
+The synthetic private key already committed inside SamlSignatureValidationTests is public disposable test material. Do not export or reuse it outside this repository test.
 
 ---
 
