@@ -22,6 +22,10 @@ You will:
 - prove that both valid placements can work with the current Spring Security training SP
 - run the existing unsigned-SAML rejection test
 - prove that readable, correctly shaped SAML is still rejected when required signature protection is absent
+- run the focused Day 8 tampering test
+- prove that changing signed XML after signing produces INVALID_SIGNATURE
+- run the focused wrong-trusted-certificate test
+- prove that a valid signature created with one key is rejected when AcmeHR trusts a different certificate
 - restore the exact signing configuration you started with
 - document the failure using the course troubleshooting method
 
@@ -1099,29 +1103,228 @@ The failure was absence of required signature protection.
 
 ---
 
-# Part 26: Compare unsigned failure with wrong-certificate failure
+# Part 26: Run the focused Day 8 signature-validation tests
 
-Today we are directly testing the unsigned case.
+The repository now contains:
 
-A wrong trusted certificate would fail for a different reason.
+~~~text
+lab-sp/src/test/java/com/acme/training/acmehr/security/SamlSignatureValidationTests.java
+~~~
 
-Compare:
+Run only that class:
 
-| Case | Signature present? | Correct verification key? | Expected result |
-| --- | --- | --- | --- |
-| Valid signed SAML | yes | yes | signature can verify |
-| Unsigned SAML | no | not applicable to missing signature | reject |
-| Wrong trusted certificate | yes | no | reject |
+## macOS or Linux
 
-Do not merge the last two into one diagnosis.
+~~~bash
+docker compose --profile test run --rm validation-tests \
+  mvn -B -ntp -Dtest=SamlSignatureValidationTests test
+~~~
 
-They are different failure modes.
+## Windows PowerShell
 
-The Day 8 implementation work can add more focused certificate-mismatch fixtures without changing the live Okta certificate.
+~~~powershell
+docker compose --profile test run --rm validation-tests mvn -B -ntp -Dtest=SamlSignatureValidationTests test
+~~~
+
+Expected Maven result:
+
+~~~text
+BUILD SUCCESS
+~~~
+
+Again, BUILD SUCCESS means the negative tests behaved exactly as expected.
+
+It does not mean the tampered or wrong-trust SAML was accepted.
+
+The two important tests are:
+
+~~~text
+tamperedSignedResponseIsRejectedAsInvalidSignature
+
+responseSignedByCertificateThatAcmeHrDoesNotTrustIsRejected
+~~~
+
+Both tests first prove the original signed fixture succeeds with the correct trusted certificate.
+
+That baseline matters.
+
+Without it, a rejection could come from a broken fixture rather than the one change being tested.
 
 ---
 
-# Part 27: Compare signature failure with Audience failure
+# Part 29: Prove tampering fails at the signature layer
+
+Open:
+
+~~~text
+lab-sp/src/test/java/com/acme/training/acmehr/security/SamlSignatureValidationTests.java
+~~~
+
+Find:
+
+~~~text
+tamperedSignedResponseIsRejectedAsInvalidSignature
+~~~
+
+The test does this in order:
+
+~~~text
+Create valid SAML Response
+        |
+        v
+Sign it with the known test signing key
+        |
+        v
+Authenticate with matching trusted certificate
+        |
+        v
+PASS
+        |
+        v
+Change NameID in the already-signed XML
+        |
+        v
+Authenticate again
+        |
+        v
+INVALID_SIGNATURE
+~~~
+
+The important point is the order.
+
+The message is signed first.
+
+The signed XML is changed second.
+
+The test does not re-sign after changing the NameID.
+
+That isolates integrity.
+
+Record:
+
+~~~text
+Original signed fixture
+    ACCEPTED
+
+Change made after signing
+    NameID text changed
+
+Trusted certificate
+    UNCHANGED
+
+Result
+    INVALID_SIGNATURE
+~~~
+
+Do not diagnose the tampered NameID as a NameID-mapping failure.
+
+The signature layer fails first.
+
+---
+
+# Part 30: Prove the wrong trusted certificate fails
+
+In the same test file, find:
+
+~~~text
+responseSignedByCertificateThatAcmeHrDoesNotTrustIsRejected
+~~~
+
+This test keeps the signed SAML unchanged.
+
+It changes only the certificate AcmeHR uses as trusted verification material.
+
+The sequence is:
+
+~~~text
+Create valid SAML Response
+        |
+        v
+Sign with signing key A
+        |
+        v
+Verify with matching certificate A
+        |
+        v
+PASS
+        |
+        v
+Keep signed SAML unchanged
+        |
+        v
+Configure AcmeHR test trust with certificate B
+        |
+        v
+INVALID_SIGNATURE
+~~~
+
+Record:
+
+~~~text
+Signed XML
+    UNCHANGED
+
+Signing key
+    A
+
+Correct trusted certificate
+    A
+
+Deliberately wrong trusted certificate
+    B
+
+Result with A
+    ACCEPTED
+
+Result with B
+    INVALID_SIGNATURE
+~~~
+
+This is the certificate-mismatch failure we deliberately avoided creating in the live Okta application.
+
+No live certificate was rotated.
+
+No Okta private key was exposed.
+
+Now compare all three Day 8 failure modes:
+
+| Case | Signature present? | Signed content changed? | Correct verification certificate? | Result |
+| --- | --- | --- | --- | --- |
+| Valid signed SAML | yes | no | yes | accepted |
+| Unsigned SAML | no | no | not applicable | rejected |
+| Tampered after signing | yes | yes | yes | INVALID_SIGNATURE |
+| Wrong trusted certificate | yes | no | no | INVALID_SIGNATURE |
+
+The last two both surface at the signature layer, but their root causes are different.
+
+For the wrong-certificate test, document:
+
+~~~text
+Observed symptom:
+SAML authentication is rejected.
+
+Last confirmed successful step:
+A valid signed fixture succeeds when AcmeHR trusts the matching certificate.
+
+First failed step:
+Signature verification using the deliberately different trusted certificate.
+
+Evidence:
+The signed SAML is unchanged. Only the trusted verification certificate changes.
+
+Root cause:
+AcmeHR is using public verification material that does not correspond to the key that created the signature.
+
+Single change:
+Restore the matching trusted verification certificate.
+
+Proof after change:
+The exact same signed SAML authenticates successfully with the matching certificate.
+~~~
+
+---
+
+# Part 29: Compare signature failure with Audience failure
 
 From Day 6:
 
@@ -1159,7 +1362,7 @@ A SAML login needs the required checks to agree.
 
 ---
 
-# Part 28: Prove that decoding did not verify the signature
+# Part 30: Prove that decoding did not verify the signature
 
 You successfully decoded the live SAMLResponse before Spring Security's result was discussed.
 
@@ -1196,7 +1399,7 @@ Spring Security acceptance
 
 ---
 
-# Part 29: Prove the browser is not the signer
+# Part 31: Prove the browser is not the signer
 
 From the Network trace:
 
@@ -1231,7 +1434,7 @@ Do not describe Priya as signing the Assertion.
 
 ---
 
-# Part 30: Prove that KeyInfo alone does not establish trust
+# Part 32: Prove that KeyInfo alone does not establish trust
 
 If your live XML contains:
 
@@ -1274,7 +1477,7 @@ certificate trusted
 
 ---
 
-# Part 31: Build the Day 8 evidence table
+# Part 33: Build the Day 8 evidence table
 
 Complete this from your actual lab.
 
@@ -1292,13 +1495,16 @@ Complete this from your actual lab.
 | Did Assertion-only login work? |  |
 | Did Response-only login work? |  |
 | Was unsigned SAML rejected locally? |  |
+| Did tampered signed XML return INVALID_SIGNATURE? |  |
+| Did the same signed fixture fail with the wrong trusted certificate? |  |
+| Did the same signed fixture succeed again with the matching trusted certificate? |  |
 | Were the original Okta settings restored? |  |
 
 Do not mark a row complete without evidence.
 
 ---
 
-# Part 32: Mini challenge, classify the certificate
+# Part 34: Mini challenge, classify the certificate
 
 You are shown this certificate:
 
@@ -1320,7 +1526,7 @@ AcmeHR needs the public verification certificate, not the private key.
 
 ---
 
-# Part 33: Mini challenge, classify the signed object
+# Part 35: Mini challenge, classify the signed object
 
 Your inspector shows:
 
@@ -1348,7 +1554,7 @@ The outer Response is not separately signed.
 
 ---
 
-# Part 34: Mini challenge, separate trust from placement
+# Part 36: Mini challenge, separate trust from placement
 
 The correct Okta certificate is configured, but a vendor requires:
 
@@ -1374,7 +1580,7 @@ Check what object the vendor requires to be signed.
 
 ---
 
-# Part 35: Mini challenge, separate transport from message security
+# Part 37: Mini challenge, separate transport from message security
 
 A teammate says:
 
@@ -1395,7 +1601,7 @@ They are different controls.
 
 ---
 
-# Part 36: Explain it back
+# Part 38: Explain it back
 
 Without looking at the lesson, explain this complete transaction:
 
@@ -1439,13 +1645,16 @@ Your explanation must include:
 - why HTTPS does not replace the XML signature
 - why a valid signature still does not replace Audience or the other Day 6 checks
 - why the unsigned fixture was rejected
-- why the successful test command returned BUILD SUCCESS even though the SAML authentication was intentionally rejected
+- why changing signed XML after signing produces INVALID_SIGNATURE
+- why an unchanged signed message fails when AcmeHR trusts the wrong certificate
+- why those two INVALID_SIGNATURE results have different root causes
+- why the successful test commands return BUILD SUCCESS even though the negative SAML cases were intentionally rejected
 
 If you cannot explain one of those, return to the evidence from that layer.
 
 ---
 
-# Part 37: Restore and prove the known-good state
+# Part 39: Restore and prove the known-good state
 
 Before ending the lab, confirm the exact Okta settings from Part 1 are restored.
 
@@ -1515,11 +1724,19 @@ Do not mark the lab complete until you can prove:
 
 [ ] I ran the unsigned-SAML rejection test
 
-[ ] I understand why BUILD SUCCESS means the rejection test passed
+[ ] I ran SamlSignatureValidationTests
+
+[ ] I proved tampered signed XML is rejected as INVALID_SIGNATURE
+
+[ ] I proved a signed Response fails when AcmeHR trusts a different certificate
+
+[ ] I proved the same signed fixture succeeds with the matching trusted certificate
+
+[ ] I understand why BUILD SUCCESS means the negative tests passed
 
 [ ] I proved unsigned SAML does not create an authenticated session
 
-[ ] I documented the failure using last-success / first-failure evidence
+[ ] I documented the unsigned and wrong-certificate failures using last-success / first-failure evidence
 
 [ ] I restored the original Okta signing settings
 
@@ -1544,6 +1761,10 @@ which certificate was trusted
 how the signature requirement was enforced
 
 what failed when signature protection was absent
+
+what failed when signed content was changed
+
+what failed when the trusted verification certificate did not match the signing key
 ~~~
 
 ---
@@ -1559,9 +1780,11 @@ Keep these in your private training notes:
 5. one redacted Assertion-only inspector output
 6. one redacted Response-only inspector output
 7. unsigned rejection test result
-8. completed Day 8 evidence table
-9. completed troubleshooting record
-10. final restored-baseline proof
+8. tampered-signature test result
+9. wrong-trusted-certificate test result
+10. completed Day 8 evidence table
+11. completed troubleshooting records
+12. final restored-baseline proof
 
 Do not save:
 
