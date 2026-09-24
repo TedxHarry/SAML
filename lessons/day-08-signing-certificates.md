@@ -681,9 +681,11 @@ The SAML/XML security library does that work.
 
 ---
 
-# 24. SignatureValue proves possession of the signing private key
+# 24. SignatureValue is verified with the trusted public key
 
-At a practical level, SignatureValue is the cryptographic result that the verifier checks using the corresponding public key.
+At a practical level, SignatureValue is the cryptographic result that the verifier checks using the corresponding trusted public key.
+
+When verification succeeds, it supports the conclusion that the signature was created with the corresponding private key, assuming that private key remains under the trusted signer's control.
 
 The simplified idea is:
 
