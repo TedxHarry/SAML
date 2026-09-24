@@ -817,6 +817,14 @@ Throughout the course:
 - [x] Day 7 mapper and MVC authorization tests
 - [x] Day 7 final review and pressure test
 - [x] Day 7 closed
-- [ ] Day 8 and later content
+- [x] Day 8 signing and IdP certificates lesson
+- [x] Day 8 signing and certificate lab
+- [x] Day 8 current Okta signing controls and SAML Signing Certificates verification
+- [x] Day 8 Response, Assertion, and both-signing live lab design
+- [x] Day 8 unsigned, tampered-signature, and wrong-trusted-certificate tests
+- [x] Day 8 metadata signing-key inspection and synthetic test-key safety review
+- [x] Day 8 final review and pressure test
+- [x] Day 8 closed
+- [ ] Day 9 and later content
 
-Days 1 through 7 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
+Days 1 through 8 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
