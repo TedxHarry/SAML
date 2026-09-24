@@ -1309,6 +1309,8 @@ The repository now contains the focused signature-validation tests needed by the
 
 Day 8 keeps the learner's live Okta signing certificate unchanged for failure testing. Certificate rollover remains a later operational exercise.
 
+`SamlSignatureValidationTests.java` contains a certificate and private key committed deliberately as a reproducible synthetic fixture. That private key is public training material, provides no secrecy, and must never be reused for a real application, tenant, environment, or certificate.
+
 ## Proven automatically
 
 ```text
@@ -1327,6 +1329,8 @@ Day 8 keeps the learner's live Okta signing certificate unchanged for failure te
 [x] The wrong-certificate test changes verification trust without changing the signed SAML
 
 [x] Spring Security and OpenSAML perform the cryptographic verification
+
+[x] The committed Day 8 signing key is clearly marked as public disposable test material
 
 [x] No hand-written XML signature verifier is used
 
