@@ -285,6 +285,11 @@ root = ET.fromstring(xml)
 found = 0
 
 for key in root.findall(f".//{MD}KeyDescriptor"):
+    use = key.get("use")
+
+    if use not in (None, "signing"):
+        continue
+
     cert = key.find(f".//{DS}X509Certificate")
     if cert is None or not cert.text:
         continue
@@ -298,11 +303,11 @@ for key in root.findall(f".//{MD}KeyDescriptor"):
 
     found += 1
     print(f"Certificate {found}")
-    print(f"  use: {key.get('use', 'unspecified')}")
+    print(f"  use: {use or 'unspecified'}")
     print(f"  SHA-256: {fingerprint}")
 
 if found == 0:
-    print("No X509Certificate values found in KeyDescriptor elements.")
+    print("No signing-capable X509Certificate values found in metadata.")
 ~~~
 
 Run it.
@@ -323,9 +328,11 @@ If your Windows installation uses python instead of py, use python.
 
 Record every certificate fingerprint returned.
 
+The helper intentionally includes KeyDescriptor entries whose use is signing or unspecified, and skips encryption-only keys. In SAML metadata, an omitted use value can apply to both signing and encryption.
+
 Do not assume the first certificate is automatically the only one that matters.
 
-Metadata can contain more than one key during some trust configurations.
+Metadata can contain more than one signing-capable key during rollover or other trust configurations.
 
 ---
 
