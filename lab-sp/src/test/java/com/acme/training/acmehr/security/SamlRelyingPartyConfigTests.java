@@ -198,12 +198,20 @@ class SamlRelyingPartyConfigTests {
         Path privateKey = tempDir.resolve("day9-test-private-key.pem");
         Path certificate = tempDir.resolve("day9-test-certificate.pem");
 
-        Files.writeString(privateKey, TEST_PRIVATE_KEY_PEM);
-        Files.writeString(certificate, TEST_CERTIFICATE_PEM);
+        Files.writeString(privateKey, normalizePem(TEST_PRIVATE_KEY_PEM));
+        Files.writeString(certificate, normalizePem(TEST_CERTIFICATE_PEM));
 
         return new TestKeyFiles(
                 privateKey.toUri().toString(),
                 certificate.toUri().toString());
+    }
+
+    private static String normalizePem(String pem) {
+        return String.join(
+                "\n",
+                pem.lines()
+                        .map(String::strip)
+                        .toList()) + "\n";
     }
 
     private record TestKeyFiles(
