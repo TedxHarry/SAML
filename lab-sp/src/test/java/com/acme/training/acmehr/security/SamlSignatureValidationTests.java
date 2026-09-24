@@ -71,6 +71,13 @@ class SamlSignatureValidationTests {
     private static final String PRINCIPAL = "learner@acme.test";
     private static final Duration TEST_CLOCK_SKEW = Duration.ofSeconds(30);
 
+    /*
+     * Public training fixture only.
+     *
+     * The certificate and private key below are committed deliberately so the
+     * Day 8 signature tests are reproducible. They provide no secrecy and must
+     * never be reused for a real application, tenant, environment, or certificate.
+     */
     private static final String SIGNING_CERTIFICATE_PEM = """
             -----BEGIN CERTIFICATE-----
             MIIDZzCCAk+gAwIBAgIUbQqQF1qqhxKrxOQw4hUiEUNMnd0wDQYJKoZIhvcNAQEL
