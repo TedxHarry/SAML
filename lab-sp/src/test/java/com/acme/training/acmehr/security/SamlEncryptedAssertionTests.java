@@ -245,7 +245,7 @@ GOXoVhEkrrvaJ2keewOJcn0=
     private static String encryptedSignedResponse() {
         Response response = validResponse();
 
-        Assertion assertion = response.getAssertions().remove(0);
+        Assertion assertion = validAssertion(response.getIssueInstant());
         EncryptedAssertion encryptedAssertion = encrypt(assertion);
         response.getEncryptedAssertions().add(encryptedAssertion);
 
@@ -327,7 +327,6 @@ GOXoVhEkrrvaJ2keewOJcn0=
         response.setInResponseTo(AUTHN_REQUEST_ID);
         response.setIssuer(issuer(IDP_ENTITY_ID));
         response.setStatus(successStatus());
-        response.getAssertions().add(validAssertion(now));
 
         return response;
     }
