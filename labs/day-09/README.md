@@ -728,6 +728,8 @@ Record:
 
 | Setting | Starting value |
 | --- | --- |
+| Response |  |
+| Assertion Signature |  |
 | Signature Certificate |  |
 | Signed Requests |  |
 | Assertion Encryption |  |
@@ -961,11 +963,21 @@ Do not enable Assertion Encryption until request signing is stable.
 
 ---
 
-# Part 18: Configure Assertion Encryption
+# Part 18: Configure the pinned-stack encryption baseline
 
 Return to Okta advanced SAML settings.
 
-Set:
+Before enabling encryption, use this controlled Day 9 signing combination:
+
+~~~text
+Response
+    Signed
+
+Assertion Signature
+    Unsigned
+~~~
+
+Then set:
 
 ~~~text
 Assertion Encryption
@@ -982,7 +994,33 @@ Key Transport Algorithm
 Encryption Certificate
 ~~~
 
-Do not change the Day 8 Response / Assertion signing configuration merely because you are enabling encryption.
+Why are we temporarily using this combination?
+
+The pinned Spring Security 7.1.1 / OpenSAML 5 stack has the open issue documented in Part 25 for some signed inner Assertions after encryption and decryption.
+
+For this Day 9 live exercise, we want to prove the encryption layer without confusing that library issue with a bad certificate.
+
+The outer Response remains signed.
+
+That means AcmeHR still performs SAML signature validation before it trusts the Response.
+
+Do not use:
+
+~~~text
+Response
+    Unsigned
+
+Assertion Signature
+    Unsigned
+~~~
+
+That would remove the SAML message-signature protection we are relying on.
+
+This is a controlled training setting for the pinned stack, not a general rule that encrypted Assertions should be unsigned.
+
+Keep the original Response and Assertion Signature values you recorded in Part 8.
+
+You will restore them after the Day 9 live exercise.
 
 ---
 
@@ -1089,7 +1127,7 @@ It does not by itself prove AcmeHR can decrypt.
 
 ---
 
-# Part 24: Prove AcmeHR decrypted the Assertion
+# Part 24: Prove AcmeHR verified, decrypted, and authenticated
 
 Confirm:
 
@@ -1114,22 +1152,40 @@ validated claims
     AVAILABLE
 ~~~
 
-This shows that AcmeHR got beyond EncryptedAssertion and processed the decrypted, validated Assertion.
+For this pinned-stack live baseline, the successful path is:
+
+~~~text
+signed outer Response received
+        |
+        v
+Response signature validation succeeds
+        |
+        v
+EncryptedAssertion decrypts
+        |
+        v
+normal SAML validation succeeds
+        |
+        v
+authenticated application session
+~~~
+
+This shows that AcmeHR both trusted the signed outer Response and successfully processed the decrypted Assertion.
 
 ---
 
 # Part 25: Keep the success statement precise
 
-A successful encrypted login proves the combined path:
+A successful encrypted login proves the combined path used by this lab:
 
 ~~~text
-EncryptedAssertion received
+signed outer Response received
         |
         v
-decryption succeeded
+Response signature validation succeeded
         |
         v
-required signature validation succeeded
+EncryptedAssertion decryption succeeded
         |
         v
 normal SAML validation succeeded
@@ -1173,7 +1229,9 @@ Do not work around the issue by:
 - writing custom XML Signature verification
 - changing certificates without evidence
 
-For Day 9, the focused local test proves the decryption layer with a signed outer Response. Recheck issue #19606 before expanding the lab to rely on a signed inner Assertion as the primary encryption fixture.
+For Day 9, both the focused local test and the controlled live encryption exercise use a signed outer Response with an encrypted inner Assertion.
+
+Recheck issue #19606 before expanding the lab to rely on a signed inner Assertion as the primary encryption fixture.
 
 Reference:
 
@@ -1617,16 +1675,19 @@ Okta verifies AcmeHR signature
 Okta authenticates Priya
         |
         v
-Okta signs and encrypts Assertion
+Okta encrypts Assertion
+        |
+        v
+Okta signs outer Response
         |
         v
 browser carries SAMLResponse
         |
         v
-AcmeHR decrypts Assertion
+AcmeHR verifies Response signature
         |
         v
-AcmeHR verifies Okta signature
+AcmeHR decrypts Assertion
         |
         v
 normal SAML validation
@@ -1655,25 +1716,43 @@ Your explanation must identify:
 
 ---
 
-# Part 39: Confirm the intended final state
+# Part 39: Restore the stable post-lab baseline
 
-Do not leave a half-configured integration.
+Do not leave the integration in the temporary pinned-stack encryption configuration.
 
-If Day 9 becomes the shared course baseline, confirm:
+First, keep your Day 9 evidence.
+
+Then restore the Okta values you recorded in Part 8, including:
 
 ~~~text
-Signed Requests
-    ENABLED
+Response
 
-AcmeHR request-signing certificate
-    MATCHES Okta Signature Certificate
+Assertion Signature
+
+Signed Requests
 
 Assertion Encryption
-    ENCRYPTED
 
-AcmeHR decryption key
-    MATCHES Okta Encryption Certificate
+Signature Certificate, if it changed
 
+Encryption settings, if they were introduced only for this exercise
+~~~
+
+The goal is to return to the same known-good Okta signing/encryption baseline you had before the Day 9 live changes.
+
+Then stop the temporary Day 9 credential-mounted container:
+
+~~~bash
+docker rm -f acmehr-day9
+~~~
+
+Restart the normal training SP using the same method you used before the Day 9 live exercise.
+
+Run a fresh SP-initiated login.
+
+Confirm:
+
+~~~text
 fresh SP-initiated login
     PASS
 
@@ -1681,9 +1760,11 @@ AcmeHR application session
     ACTIVE
 ~~~
 
-If the later implementation decides the shared course baseline should return to Day 8 settings between lessons, restore the Part 8 recovery values and prove that baseline instead.
+The Day 9 credential files may remain in your private home-directory training folder for later reference.
 
-Follow the repository's finalized Day 9 implementation guidance.
+Do not move them into the repository.
+
+Day 9 proves the advanced trust paths without forcing the known Spring 7.1.1 signed-encrypted-Assertion edge case to become the baseline for later lessons.
 
 ---
 
@@ -1728,6 +1809,12 @@ Do not mark Day 9 complete until you can prove:
 
 [ ] I proved Okta accepted the signed request
 
+[ ] I recorded my original Response and Assertion Signature settings before the encryption exercise
+
+[ ] I used Response Signed and Assertion Signature Unsigned for the pinned-stack live encryption proof
+
+[ ] I kept SAML signature validation active through the signed outer Response
+
 [ ] I uploaded only the public encryption certificate to Encryption Certificate
 
 [ ] I recorded Encryption Algorithm and Key Transport Algorithm
@@ -1756,7 +1843,11 @@ Do not mark Day 9 complete until you can prove:
 
 [ ] I proved no private key crossed the federation boundary
 
-[ ] I confirmed the intended final baseline
+[ ] I restored the original Part 8 Okta signing and encryption settings
+
+[ ] I stopped the temporary Day 9 credential-mounted container
+
+[ ] I proved a fresh login still works after restoration
 
 [ ] I can explain every certificate by purpose, owner, holder, and operation
 ~~~
@@ -1789,26 +1880,28 @@ Keep in your private training notes:
 2. proof that the Day 9 credentials were created outside the repository
 3. container credential-location values, but never private-key contents
 4. live ACMEHR_SAML_NAME_ID_FORMAT value matched to Day 5 NameID evidence
-5. /actuator/health UP result with the Day 9 credentials loaded
-6. SP metadata signing and encryption fingerprints
-7. redacted signed Redirect query showing parameter names
-8. SigAlg value
-9. decoded AuthnRequest with NameIDPolicy
-10. Okta Signature Certificate fingerprint
-11. successful signed-request flow
-12. Okta Encryption Certificate fingerprint
-13. Encryption Algorithm
-14. Key Transport Algorithm
-15. redacted outer SAMLResponse showing EncryptedAssertion
-16. successful encrypted-login result
-17. SamlAuthenticationRequestTests result
-18. matching-certificate Redirect verification proof
-19. different-certificate Redirect rejection proof
-20. SamlEncryptedAssertionTests result
-21. matching-key decryption proof
-22. wrong-key DECRYPTION_ERROR proof
-23. both troubleshooting records
-24. final baseline proof
+5. original Response and Assertion Signature settings
+6. temporary Day 9 Response Signed / Assertion Signature Unsigned evidence
+7. /actuator/health UP result with the Day 9 credentials loaded
+8. SP metadata signing and encryption fingerprints
+9. redacted signed Redirect query showing parameter names
+10. SigAlg value
+11. decoded AuthnRequest with NameIDPolicy
+12. Okta Signature Certificate fingerprint
+13. successful signed-request flow
+14. Okta Encryption Certificate fingerprint
+15. Encryption Algorithm
+16. Key Transport Algorithm
+17. redacted outer SAMLResponse showing EncryptedAssertion
+18. successful encrypted-login result
+19. SamlAuthenticationRequestTests result
+20. matching-certificate Redirect verification proof
+21. different-certificate Redirect rejection proof
+22. SamlEncryptedAssertionTests result
+23. matching-key decryption proof
+24. wrong-key DECRYPTION_ERROR proof
+25. both troubleshooting records
+26. restored Part 8 settings and final fresh-login proof
 
 Do not save:
 
