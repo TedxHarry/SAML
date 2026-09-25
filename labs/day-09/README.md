@@ -52,16 +52,19 @@ Okta verifies with AcmeHR public signing certificate
 Okta authenticates Priya
         |
         v
-Okta signs and encrypts Assertion
+Okta encrypts Assertion
+        |
+        v
+Okta signs outer Response
         |
         v
 browser POSTs SAMLResponse
         |
         v
-AcmeHR decrypts with AcmeHR private decryption key
+AcmeHR verifies Response signature
         |
         v
-AcmeHR verifies Okta signature
+AcmeHR decrypts with AcmeHR private decryption key
         |
         v
 normal SAML validation
