@@ -274,6 +274,328 @@ A filename does not define a certificate role.
 
 Purpose and key ownership do.
 
+## Create disposable Day 9 credentials outside the repository
+
+The live Docker lab needs real SP-owned key pairs.
+
+Do not put them under the cloned SAML repository.
+
+Use a private training directory in your home folder.
+
+The commands below create two separate RSA key pairs:
+
+~~~text
+request-signing key pair
+
+assertion-encryption / decryption key pair
+~~~
+
+Keeping them separate makes the certificate roles visible while you learn.
+
+These are disposable training credentials.
+
+Do not reuse them for any real application.
+
+### macOS or Linux
+
+Confirm OpenSSL is available:
+
+~~~bash
+openssl version
+~~~
+
+Create the private directory and both key pairs:
+
+~~~bash
+CRED_DIR="$HOME/.acmehr-training/day9"
+
+mkdir -p "$CRED_DIR"
+chmod 700 "$CRED_DIR"
+
+openssl genpkey \
+  -algorithm RSA \
+  -pkeyopt rsa_keygen_bits:2048 \
+  -out "$CRED_DIR/sp-signing-private-key.pem"
+
+openssl req \
+  -new \
+  -x509 \
+  -sha256 \
+  -days 30 \
+  -key "$CRED_DIR/sp-signing-private-key.pem" \
+  -subj "/CN=AcmeHR Day 9 Request Signing" \
+  -out "$CRED_DIR/sp-signing-certificate.pem"
+
+openssl genpkey \
+  -algorithm RSA \
+  -pkeyopt rsa_keygen_bits:2048 \
+  -out "$CRED_DIR/sp-decryption-private-key.pem"
+
+openssl req \
+  -new \
+  -x509 \
+  -sha256 \
+  -days 30 \
+  -key "$CRED_DIR/sp-decryption-private-key.pem" \
+  -subj "/CN=AcmeHR Day 9 Assertion Encryption" \
+  -out "$CRED_DIR/sp-decryption-certificate.pem"
+
+chmod 600 \
+  "$CRED_DIR/sp-signing-private-key.pem" \
+  "$CRED_DIR/sp-decryption-private-key.pem"
+
+chmod 644 \
+  "$CRED_DIR/sp-signing-certificate.pem" \
+  "$CRED_DIR/sp-decryption-certificate.pem"
+~~~
+
+### Windows PowerShell
+
+Confirm OpenSSL is available:
+
+~~~powershell
+openssl version
+~~~
+
+Create the private directory and both key pairs:
+
+~~~powershell
+$CRED_DIR = Join-Path $HOME ".acmehr-training\day9"
+
+New-Item -ItemType Directory -Force -Path $CRED_DIR | Out-Null
+
+openssl genpkey `
+  -algorithm RSA `
+  -pkeyopt rsa_keygen_bits:2048 `
+  -out (Join-Path $CRED_DIR "sp-signing-private-key.pem")
+
+openssl req `
+  -new `
+  -x509 `
+  -sha256 `
+  -days 30 `
+  -key (Join-Path $CRED_DIR "sp-signing-private-key.pem") `
+  -subj "/CN=AcmeHR Day 9 Request Signing" `
+  -out (Join-Path $CRED_DIR "sp-signing-certificate.pem")
+
+openssl genpkey `
+  -algorithm RSA `
+  -pkeyopt rsa_keygen_bits:2048 `
+  -out (Join-Path $CRED_DIR "sp-decryption-private-key.pem")
+
+openssl req `
+  -new `
+  -x509 `
+  -sha256 `
+  -days 30 `
+  -key (Join-Path $CRED_DIR "sp-decryption-private-key.pem") `
+  -subj "/CN=AcmeHR Day 9 Assertion Encryption" `
+  -out (Join-Path $CRED_DIR "sp-decryption-certificate.pem")
+~~~
+
+If `openssl version` is not available, install an OpenSSL CLI for your workstation before continuing.
+
+Do not substitute the repository's committed synthetic test private keys for the live Okta exercise.
+
+Those keys are public test fixtures and provide no secrecy.
+
+## Confirm the private-key format
+
+The Day 9 SP loader expects an unencrypted PKCS#8 RSA private key.
+
+The generated files should start with:
+
+~~~text
+-----BEGIN PRIVATE KEY-----
+~~~
+
+They should not start with:
+
+~~~text
+-----BEGIN RSA PRIVATE KEY-----
+~~~
+
+Do not paste the private-key content into your notes.
+
+## Point Spring at paths inside the container
+
+The host directory will be mounted inside the SP container at:
+
+~~~text
+/run/acmehr-day9
+~~~
+
+Spring must therefore receive the **container paths**, not your host paths.
+
+### macOS or Linux
+
+From the `lab-sp` directory:
+
+~~~bash
+export ACMEHR_SAML_SP_SIGNING_PRIVATE_KEY_LOCATION="file:/run/acmehr-day9/sp-signing-private-key.pem"
+export ACMEHR_SAML_SP_SIGNING_CERTIFICATE_LOCATION="file:/run/acmehr-day9/sp-signing-certificate.pem"
+
+export ACMEHR_SAML_SP_DECRYPTION_PRIVATE_KEY_LOCATION="file:/run/acmehr-day9/sp-decryption-private-key.pem"
+export ACMEHR_SAML_SP_DECRYPTION_CERTIFICATE_LOCATION="file:/run/acmehr-day9/sp-decryption-certificate.pem"
+
+export ACMEHR_SAML_NAME_ID_FORMAT="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+~~~
+
+Keep the same working `IDP_METADATA_URL` from your Day 8 setup.
+
+### Windows PowerShell
+
+From the `lab-sp` directory:
+
+~~~powershell
+$env:ACMEHR_SAML_SP_SIGNING_PRIVATE_KEY_LOCATION = "file:/run/acmehr-day9/sp-signing-private-key.pem"
+$env:ACMEHR_SAML_SP_SIGNING_CERTIFICATE_LOCATION = "file:/run/acmehr-day9/sp-signing-certificate.pem"
+
+$env:ACMEHR_SAML_SP_DECRYPTION_PRIVATE_KEY_LOCATION = "file:/run/acmehr-day9/sp-decryption-private-key.pem"
+$env:ACMEHR_SAML_SP_DECRYPTION_CERTIFICATE_LOCATION = "file:/run/acmehr-day9/sp-decryption-certificate.pem"
+
+$env:ACMEHR_SAML_NAME_ID_FORMAT = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+~~~
+
+Keep the same working `IDP_METADATA_URL` from your Day 8 setup.
+
+## Verify Compose receives the Day 9 settings
+
+Run:
+
+~~~bash
+docker compose config
+~~~
+
+Under the `acmehr-training-sp` service, verify that these values are no longer empty:
+
+~~~text
+IDP_METADATA_URL
+
+ACMEHR_SAML_SP_SIGNING_PRIVATE_KEY_LOCATION
+ACMEHR_SAML_SP_SIGNING_CERTIFICATE_LOCATION
+
+ACMEHR_SAML_SP_DECRYPTION_PRIVATE_KEY_LOCATION
+ACMEHR_SAML_SP_DECRYPTION_CERTIFICATE_LOCATION
+
+ACMEHR_SAML_NAME_ID_FORMAT
+~~~
+
+The credential values should point to:
+
+~~~text
+file:/run/acmehr-day9/...
+~~~
+
+Do not point them to:
+
+~~~text
+file:/Users/...
+file:/home/your-name/...
+C:\Users\...
+~~~
+
+Those are host paths.
+
+The Java process runs inside the container.
+
+## Start the Day 9 SP with the credentials directory mounted read-only
+
+Stop an earlier training-SP container first.
+
+### macOS or Linux
+
+~~~bash
+docker compose down
+
+docker rm -f acmehr-day9 2>/dev/null || true
+
+docker compose run -d \
+  --name acmehr-day9 \
+  --service-ports \
+  --user "$(id -u):$(id -g)" \
+  --volume "$CRED_DIR:/run/acmehr-day9:ro" \
+  acmehr-training-sp
+~~~
+
+The `--user` option lets the container process read the private files that are mode `600` and owned by your workstation user.
+
+### Windows PowerShell
+
+~~~powershell
+docker compose down
+
+docker rm -f acmehr-day9 2>$null
+
+docker compose run -d `
+  --name acmehr-day9 `
+  --service-ports `
+  --volume "${CRED_DIR}:/run/acmehr-day9:ro" `
+  acmehr-training-sp
+~~~
+
+Docker Desktop handles the Windows bind mount.
+
+The `:ro` suffix makes the credential directory read-only inside the container.
+
+## Prove the SP started with the mounted credentials
+
+Open:
+
+~~~text
+http://localhost:8000/actuator/health
+~~~
+
+Expected:
+
+~~~json
+{"status":"UP"}
+~~~
+
+Then open:
+
+~~~text
+http://localhost:8000/saml2/metadata/acmehr
+~~~
+
+At this point the SP is running with the Day 9 signing and decryption credentials.
+
+If the container exits, inspect:
+
+~~~bash
+docker logs acmehr-day9
+~~~
+
+Common evidence to check first:
+
+~~~text
+Could not read PKCS#8 RSA private key
+    -> private-key path, format, or read permission
+
+Could not read X.509 certificate
+     -> certificate path or certificate format
+
+name-id-format is required
+     -> ACMEHR_SAML_NAME_ID_FORMAT is missing
+
+resource does not exist
+    -> host path was supplied instead of the mounted container path
+~~~
+
+Do not enable Okta Signed Requests or Assertion Encryption until this startup check passes.
+
+## Cleanup after the Day 9 live lab
+
+When the live lab is complete:
+
+~~~bash
+docker rm -f acmehr-day9
+~~~
+
+The credential files remain in your private home-directory training folder until you deliberately delete them.
+
+Do not copy them into the repository.
+
 ---
 
 # Part 6: Inspect AcmeHR SP metadata
@@ -1362,6 +1684,16 @@ Do not mark Day 9 complete until you can prove:
 
 [ ] I waited for the Day 9 implementation checkpoint before changing Okta
 
+[ ] I created separate disposable Day 9 signing and decryption key pairs outside the repository
+
+[ ] I confirmed both private keys use PKCS#8 BEGIN PRIVATE KEY format
+
+[ ] I set the Day 9 Spring resource locations to file:/run/acmehr-day9/... container paths
+
+[ ] I mounted the credential directory read-only into the SP container
+
+[ ] I proved /actuator/health returns UP with the Day 9 credentials loaded
+
 [ ] I identified AcmeHR request-signing public certificate
 
 [ ] I identified AcmeHR encryption public certificate
@@ -1438,25 +1770,28 @@ where the transaction stops when one relationship is wrong
 Keep in your private training notes:
 
 1. certificate ownership table
-2. SP metadata signing and encryption fingerprints
-3. redacted signed Redirect query showing parameter names
-4. SigAlg value
-5. decoded AuthnRequest with NameIDPolicy
-6. Okta Signature Certificate fingerprint
-7. successful signed-request flow
-8. Okta Encryption Certificate fingerprint
-9. Encryption Algorithm
-10. Key Transport Algorithm
-11. redacted outer SAMLResponse showing EncryptedAssertion
-12. successful encrypted-login result
-13. SamlAuthenticationRequestTests result
-14. matching-certificate Redirect verification proof
-15. different-certificate Redirect rejection proof
-16. SamlEncryptedAssertionTests result
-17. matching-key decryption proof
-18. wrong-key DECRYPTION_ERROR proof
-19. both troubleshooting records
-20. final baseline proof
+2. proof that the Day 9 credentials were created outside the repository
+3. container credential-location values, but never private-key contents
+4. /actuator/health UP result with the Day 9 credentials loaded
+5. SP metadata signing and encryption fingerprints
+6. redacted signed Redirect query showing parameter names
+7. SigAlg value
+8. decoded AuthnRequest with NameIDPolicy
+9. Okta Signature Certificate fingerprint
+10. successful signed-request flow
+11. Okta Encryption Certificate fingerprint
+12. Encryption Algorithm
+13. Key Transport Algorithm
+14. redacted outer SAMLResponse showing EncryptedAssertion
+15. successful encrypted-login result
+16. SamlAuthenticationRequestTests result
+17. matching-certificate Redirect verification proof
+18. different-certificate Redirect rejection proof
+19. SamlEncryptedAssertionTests result
+20. matching-key decryption proof
+21. wrong-key DECRYPTION_ERROR proof
+22. both troubleshooting records
+23. final baseline proof
 
 Do not save:
 
