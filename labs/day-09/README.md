@@ -438,8 +438,12 @@ export ACMEHR_SAML_SP_SIGNING_CERTIFICATE_LOCATION="file:/run/acmehr-day9/sp-sig
 export ACMEHR_SAML_SP_DECRYPTION_PRIVATE_KEY_LOCATION="file:/run/acmehr-day9/sp-decryption-private-key.pem"
 export ACMEHR_SAML_SP_DECRYPTION_CERTIFICATE_LOCATION="file:/run/acmehr-day9/sp-decryption-certificate.pem"
 
-export ACMEHR_SAML_NAME_ID_FORMAT="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+# Day 3 left Okta at its default Name ID format.
+# If you kept that default, use Unspecified:
+export ACMEHR_SAML_NAME_ID_FORMAT="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
 ~~~
+
+If your Day 5 evidence shows a different live NameID `Format` value, use that exact URI instead.
 
 Keep the same working `IDP_METADATA_URL` from your Day 8 setup.
 
@@ -454,8 +458,12 @@ $env:ACMEHR_SAML_SP_SIGNING_CERTIFICATE_LOCATION = "file:/run/acmehr-day9/sp-sig
 $env:ACMEHR_SAML_SP_DECRYPTION_PRIVATE_KEY_LOCATION = "file:/run/acmehr-day9/sp-decryption-private-key.pem"
 $env:ACMEHR_SAML_SP_DECRYPTION_CERTIFICATE_LOCATION = "file:/run/acmehr-day9/sp-decryption-certificate.pem"
 
-$env:ACMEHR_SAML_NAME_ID_FORMAT = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+# Day 3 left Okta at its default Name ID format.
+# If you kept that default, use Unspecified:
+$env:ACMEHR_SAML_NAME_ID_FORMAT = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
 ~~~
+
+If your Day 5 evidence shows a different live NameID `Format` value, use that exact URI instead.
 
 Keep the same working `IDP_METADATA_URL` from your Day 8 setup.
 
@@ -757,11 +765,17 @@ Run the Day 9 AuthnRequest tests added by the implementation.
 
 The decoded request must now contain NameIDPolicy.
 
-The Name ID Format configured in Okta must be compatible with the request's NameIDPolicy Format.
+The Name ID Format configured in Okta must match the request's NameIDPolicy Format.
+
+For the live lab, use the exact NameID `Format` URI you recorded on Day 5.
+
+If you kept the original Day 3 default, that is normally the Unspecified format used in the Docker setup above.
+
+Do not copy the automated test fixture's `emailAddress` format into the live app unless your Okta app is actually configured for EmailAddress.
 
 Do not enable Signed Requests while the generated request still lacks NameIDPolicy.
 
-Current Okta documentation requires NameIDPolicy when Signed Requests is enabled.
+Current Okta documentation requires NameIDPolicy when Signed Requests is enabled and states that the Name ID format must match when NameIDPolicy is present.
 
 ---
 
@@ -1690,6 +1704,8 @@ Do not mark Day 9 complete until you can prove:
 
 [ ] I set the Day 9 Spring resource locations to file:/run/acmehr-day9/... container paths
 
+[ ] I set ACMEHR_SAML_NAME_ID_FORMAT to the live NameID Format URI recorded on Day 5
+
 [ ] I mounted the credential directory read-only into the SP container
 
 [ ] I proved /actuator/health returns UP with the Day 9 credentials loaded
@@ -1772,26 +1788,27 @@ Keep in your private training notes:
 1. certificate ownership table
 2. proof that the Day 9 credentials were created outside the repository
 3. container credential-location values, but never private-key contents
-4. /actuator/health UP result with the Day 9 credentials loaded
-5. SP metadata signing and encryption fingerprints
-6. redacted signed Redirect query showing parameter names
-7. SigAlg value
-8. decoded AuthnRequest with NameIDPolicy
-9. Okta Signature Certificate fingerprint
-10. successful signed-request flow
-11. Okta Encryption Certificate fingerprint
-12. Encryption Algorithm
-13. Key Transport Algorithm
-14. redacted outer SAMLResponse showing EncryptedAssertion
-15. successful encrypted-login result
-16. SamlAuthenticationRequestTests result
-17. matching-certificate Redirect verification proof
-18. different-certificate Redirect rejection proof
-19. SamlEncryptedAssertionTests result
-20. matching-key decryption proof
-21. wrong-key DECRYPTION_ERROR proof
-22. both troubleshooting records
-23. final baseline proof
+4. live ACMEHR_SAML_NAME_ID_FORMAT value matched to Day 5 NameID evidence
+5. /actuator/health UP result with the Day 9 credentials loaded
+6. SP metadata signing and encryption fingerprints
+7. redacted signed Redirect query showing parameter names
+8. SigAlg value
+9. decoded AuthnRequest with NameIDPolicy
+10. Okta Signature Certificate fingerprint
+11. successful signed-request flow
+12. Okta Encryption Certificate fingerprint
+13. Encryption Algorithm
+14. Key Transport Algorithm
+15. redacted outer SAMLResponse showing EncryptedAssertion
+16. successful encrypted-login result
+17. SamlAuthenticationRequestTests result
+18. matching-certificate Redirect verification proof
+19. different-certificate Redirect rejection proof
+20. SamlEncryptedAssertionTests result
+21. matching-key decryption proof
+22. wrong-key DECRYPTION_ERROR proof
+23. both troubleshooting records
+24. final baseline proof
 
 Do not save:
 
