@@ -808,6 +808,41 @@ Do not shorten this to:
 
 Several layers passed.
 
+## Important Spring Security 7.1.1 boundary
+
+The focused repository decryption test deliberately uses:
+
+~~~text
+signed outer Response
++
+encrypted Assertion
+~~~
+
+It does not use a signed inner Assertion as the proof fixture.
+
+The repository library review records Spring Security issue #19606 for the pinned Spring Security 7.1.1 / OpenSAML 5 stack. The upstream issue is still open and describes namespace changes during encrypted-Assertion processing that can alter the canonicalized Assertion and cause an otherwise valid inner Assertion signature digest to fail.
+
+That means this lab must not diagnose every signed-and-encrypted-Assertion signature failure as:
+
+~~~text
+wrong Okta signing certificate
+~~~
+
+First determine whether the failure matches the known library behavior.
+
+Do not work around the issue by:
+
+- disabling signature validation
+- trusting unsigned SAML
+- writing custom XML Signature verification
+- changing certificates without evidence
+
+For Day 9, the focused local test proves the decryption layer with a signed outer Response. Recheck issue #19606 before expanding the lab to rely on a signed inner Assertion as the primary encryption fixture.
+
+Reference:
+
+https://github.com/spring-projects/spring-security/issues/19606
+
 ---
 
 # Part 26: Run the local request-signing trust failure test
@@ -842,29 +877,94 @@ Do not create this failure by changing the live Okta certificate.
 
 ---
 
-# Part 27: Run the local decryption-key failure test
+# Part 27: Run the focused encrypted-Assertion tests
 
-The Day 9 implementation must also include a focused local encrypted-Assertion test:
+The repository now contains:
 
 ~~~text
-Assertion encrypted for public certificate A
-
-matching private key A
-    DECRYPTS
-
-different private key B
-    FAILS
+lab-sp/src/test/java/com/acme/training/acmehr/security/SamlEncryptedAssertionTests.java
 ~~~
 
-Run the Day 9 encryption test class documented by the implementation.
+The class proves both the known-good and wrong-key cases.
 
-Expected:
+Run it through the same Docker test runner used by the earlier labs.
+
+## macOS or Linux
+
+~~~bash
+docker compose --profile test run --rm validation-tests \
+  mvn -B -ntp -Dtest=SamlEncryptedAssertionTests test
+~~~
+
+## Windows PowerShell
+
+~~~powershell
+docker compose --profile test run --rm validation-tests mvn -B -ntp -Dtest=SamlEncryptedAssertionTests test
+~~~
+
+Expected Maven result:
 
 ~~~text
 BUILD SUCCESS
 ~~~
 
-Do not create this failure by breaking the live Okta app.
+The two focused tests are:
+
+~~~text
+encryptedAssertionDecryptsWithMatchingAcmeHrPrivateKey
+
+encryptedAssertionIsRejectedWithDifferentPrivateKey
+~~~
+
+The first proves:
+
+~~~text
+Assertion encrypted for AcmeHR public certificate A
+        |
+        v
+AcmeHR private key A
+        |
+        v
+decryption succeeds
+        |
+        v
+normal SAML validation continues
+        |
+        v
+authenticated principal created
+~~~
+
+The second first proves that exact encrypted fixture succeeds with matching private key A.
+
+It then changes only the decryption private key:
+
+~~~text
+same encrypted SAML
+        |
+        v
+different private key B
+        |
+        v
+DECRYPTION_ERROR
+~~~
+
+That baseline-first sequence matters.
+
+Without the successful matching-key baseline, a rejection could come from a broken synthetic Response instead of the deliberately wrong private key.
+
+Also inspect the serialized fixture behavior in the test:
+
+~~~text
+EncryptedAssertion
+    PRESENT
+
+plaintext Assertion element
+    NOT PRESENT
+~~~
+
+The test keeps the IdP signing key pair separate from the SP encryption/decryption key pair so the two trust directions are not confused.
+
+Do not create this failure by changing the live Okta Encryption Certificate or replacing AcmeHR's live private key.
 
 ---
 
@@ -983,7 +1083,9 @@ This is a required Day 9 result.
 | EncryptedAssertion present? |  |
 | Did AcmeHR decrypt and authenticate? |  |
 | Wrong request verification certificate rejected locally? |  |
-| Wrong decryption key rejected locally? |  |
+| SamlEncryptedAssertionTests BUILD SUCCESS? |  |
+| Matching AcmeHR decryption key accepted locally? |  |
+| Different private key returned DECRYPTION_ERROR? |  |
 
 Do not mark a row complete without evidence.
 
@@ -1219,7 +1321,13 @@ Do not mark Day 9 complete until you can prove:
 
 [ ] I ran the local wrong request-signing trust test
 
-[ ] I ran the local wrong decryption-key test
+[ ] I ran SamlEncryptedAssertionTests
+
+[ ] I proved the matching AcmeHR private key decrypts successfully
+
+[ ] I proved a different private key is rejected with DECRYPTION_ERROR
+
+[ ] I understand why the focused test uses a signed outer Response with an encrypted Assertion on the pinned Spring Security 7.1.1 stack
 
 [ ] I documented both failures from last-success / first-failure evidence
 
@@ -1267,9 +1375,11 @@ Keep in your private training notes:
 11. redacted outer SAMLResponse showing EncryptedAssertion
 12. successful encrypted-login result
 13. wrong request-signing trust test result
-14. wrong decryption-key test result
-15. both troubleshooting records
-16. final baseline proof
+14. SamlEncryptedAssertionTests result
+15. matching-key decryption proof
+16. wrong-key DECRYPTION_ERROR proof
+17. both troubleshooting records
+18. final baseline proof
 
 Do not save:
 
