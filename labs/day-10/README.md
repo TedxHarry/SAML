@@ -238,6 +238,39 @@ Do not add Maya to a group that already grants AcmeHR access.
 
 Do not assign AcmeHR to Maya yet.
 
+Before using Maya for the assignment incident, prove the Okta user itself is usable.
+
+Open Maya under:
+
+~~~text
+Directory
+    ->
+People
+~~~
+
+Confirm:
+
+~~~text
+Okta user status
+    ACTIVE
+~~~
+
+If you just created Maya, complete the normal activation or password setup required by your training org.
+
+Then prove Maya can authenticate to Okta itself without using the AcmeHR application.
+
+Do not continue if Maya is:
+
+~~~text
+Staged
+Pending user action
+Locked out
+Suspended
+Deactivated
+~~~
+
+Otherwise a user-status or credential problem could be mistaken for an AcmeHR assignment failure.
+
 ---
 
 # Part 5: Give Maya the normal Day 7 profile values except one JIT field
@@ -553,6 +586,46 @@ MFA
 
 For the full Day 10 MFA proof, use a test user that can satisfy two factor types.
 
+Now create one temporary native Okta group used only to target the policy rule.
+
+Open:
+
+~~~text
+Directory
+    ->
+Groups
+    ->
+Add Group
+~~~
+
+Create:
+
+~~~text
+Name
+    Day10-MFA-Test
+
+Description
+    Temporary group for the AcmeHR Day 10 policy exercise
+~~~
+
+Do not name this group with the `AcmeHR-` prefix.
+
+The Day 7 SAML groups claim intentionally selects names beginning with `AcmeHR-`.
+
+Using `Day10-MFA-Test` keeps the MFA targeting group out of that training claim.
+
+Open the new group and assign only the primary Day 10 test user.
+
+Confirm:
+
+~~~text
+Day10-MFA-Test
+    contains primary test user
+
+Maya
+    does not need to be in this group
+~~~
+
 ---
 
 # Part 16: Create a dedicated Day 10 app sign-in policy
@@ -603,19 +676,28 @@ Create a rule named:
 Day10 step-up
 ~~~
 
-Use conditions that apply to the training user population in your org.
+Set the rule's user or group condition so it applies to:
+
+~~~text
+Day10-MFA-Test
+~~~
+
+and not to all users in the org.
 
 For the full MFA exercise, configure:
 
 ~~~text
-Access
-    Allowed
+IF
+    User's group membership includes Day10-MFA-Test
 
-User must authenticate with
-    Any 2 factor types
+THEN
+    Access is Allowed
 
-Prompt for authentication
-    Every time user signs in to resource
+AND
+    User must authenticate with Any 2 factor types
+
+AND
+    Prompt for authentication Every time user signs in to resource
 ~~~
 
 Leave unrelated device, network, or risk conditions unchanged unless your tenant requires them.
@@ -850,6 +932,34 @@ AcmeHR Day 10 Lab Policy
 ~~~
 
 Do not leave a temporary MFA policy attached to the training application.
+
+Now clean up the temporary targeting group.
+
+Open:
+
+~~~text
+Directory
+    ->
+Groups
+    ->
+Day10-MFA-Test
+~~~
+
+Remove the primary test user from the group.
+
+Then delete the temporary group.
+
+Confirm:
+
+~~~text
+AcmeHR Day 10 Lab Policy
+    DELETED
+
+Day10-MFA-Test
+    DELETED
+~~~
+
+The group existed only to isolate the policy experiment.
 
 ---
 
@@ -1682,11 +1792,21 @@ Do not mark Day 10 complete until you can prove:
 
 [ ] I did not edit the shared default app sign-in policy.
 
+[ ] I proved Maya's Okta user was Active and usable before testing assignment failure.
+
+[ ] I created a temporary Day10-MFA-Test group without using the AcmeHR- claim prefix.
+
+[ ] I put only the primary test user in Day10-MFA-Test.
+
 [ ] I created a temporary policy used only by AcmeHR Training.
+
+[ ] I targeted the Day10 step-up rule to Day10-MFA-Test.
 
 [ ] I proved the additional authentication challenge belonged to Okta policy, not SAML claims.
 
 [ ] I restored the original app sign-in policy and removed the temporary policy.
+
+[ ] I removed the temporary Day10-MFA-Test group.
 
 [ ] I waited for the Day 10 AcmeHR JIT implementation checkpoint before running the JIT incident.
 
@@ -1720,26 +1840,29 @@ Do not mark Day 10 complete until you can prove:
 Keep in your private training notes:
 
 1. original AcmeHR assignment state
-2. Maya unassigned evidence
-3. browser proof that no successful SAMLResponse reached AcmeHR during the assignment failure
-4. relevant System Log evidence for the assignment incident
-5. Maya direct-assignment proof
-6. original AcmeHR app sign-in policy
-7. temporary Day 10 policy and rule settings
-8. browser evidence of the additional authentication challenge
-9. relevant System Log policy/authentication evidence
-10. proof that the original app sign-in policy was restored
-11. Day 10 JIT implementation-checkpoint result
-12. Maya local-account state before JIT
-13. SAML PASS / JIT FAIL evidence
-14. missing employeeNumber JIT failure evidence
-15. restored employeeNumber value
-16. JIT PASS and local-account creation evidence
-17. second-login existing-account match evidence
-18. current AcmeHR Provisioning-tab state
-19. JIT versus SCIM decision notes
-20. completed Day 10 layer table
-21. final restored SAML baseline proof
+2. Maya Active-user evidence
+3. Maya unassigned evidence
+4. browser proof that no successful SAMLResponse reached AcmeHR during the assignment failure
+5. relevant System Log evidence for the assignment incident
+6. Maya direct-assignment proof
+7. original AcmeHR app sign-in policy
+8. temporary Day10-MFA-Test group membership
+9. temporary Day 10 policy and rule settings
+10. browser evidence of the additional authentication challenge
+11. relevant System Log policy/authentication evidence
+12. proof that the original app sign-in policy was restored
+13. proof that the temporary policy and Day10-MFA-Test group were removed
+14. Day 10 JIT implementation-checkpoint result
+15. Maya local-account state before JIT
+16. SAML PASS / JIT FAIL evidence
+17. missing employeeNumber JIT failure evidence
+18. restored employeeNumber value
+19. JIT PASS and local-account creation evidence
+20. second-login existing-account match evidence
+21. current AcmeHR Provisioning-tab state
+22. JIT versus SCIM decision notes
+23. completed Day 10 layer table
+24. final restored SAML baseline proof
 
 Do not save:
 
@@ -1783,6 +1906,12 @@ Current Okta behavior used by this lab was checked against:
 
 - Add users manually:
   https://help.okta.com/oie/en-us/content/topics/users-groups-profiles/usgp-add-users.htm
+
+- Create a native Okta group:
+  https://help.okta.com/oie/en-us/content/topics/users-groups-profiles/usgp-groups-create.htm
+
+- Manually assign people to a group:
+  https://help.okta.com/oie/en-us/content/topics/users-groups-profiles/usgp-assign-group-people.htm
 
 - Add and update users with Okta inbound JIT:
   https://help.okta.com/oie/en-us/content/topics/users-groups-profiles/usgp-add-users-jit.htm
