@@ -825,6 +825,17 @@ Throughout the course:
 - [x] Day 8 metadata signing-key inspection and synthetic test-key safety review
 - [x] Day 8 final review and pressure test
 - [x] Day 8 closed
-- [ ] Day 9 and later content
+- [x] Day 9 signed AuthnRequests, Assertion encryption, and SP certificates lesson
+- [x] Day 9 signed-request and encrypted-Assertion live lab
+- [x] Day 9 SP signing and decryption credential configuration
+- [x] Day 9 Docker credential-path and read-only mount workflow
+- [x] Day 9 Redirect signature, NameIDPolicy, and wrong-verification-certificate tests
+- [x] Day 9 SP metadata signing/encryption public-key and private-key-boundary tests
+- [x] Day 9 matching and wrong decryption-key tests
+- [x] Day 9 current Okta Signed Requests, NameIDPolicy, and Assertion Encryption verification
+- [x] Day 9 Spring Security 7.1.1 encrypted-Assertion issue boundary documented
+- [x] Day 9 final review and pressure test
+- [x] Day 9 closed
+- [ ] Day 10 and later content
 
-Days 1 through 8 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
+Days 1 through 9 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
