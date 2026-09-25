@@ -1058,10 +1058,22 @@ Current automated coverage includes:
 - `/manager` returns HTTP 200 for a mapped manager
 - `/manager` returns HTTP 403 for an authenticated non-manager
 - unauthenticated `/claims` and `/manager` requests start SAML login
+- optional SP request-signing and decryption credentials load from external resource locations
+- incomplete SP credential pairs are rejected
+- signing credentials require an explicit NameID format
+- Day 8 no-SP-key behavior remains unchanged when Day 9 credentials are omitted
+- generated Day 9 Redirect AuthnRequest contains `SAMLRequest`, `RelayState`, `SigAlg`, and `Signature`
+- the actual Redirect-binding signature verifies with the matching AcmeHR public certificate
+- the same signed Redirect does not verify with a different certificate
+- generated Day 9 AuthnRequest contains `NameIDPolicy`
+- SP metadata publishes signing and encryption public-key descriptors
+- SP metadata contains no private-key material
+- encrypted Assertion decrypts with the matching AcmeHR private key
+- the same encrypted Assertion is rejected with `DECRYPTION_ERROR` when a different private key is used
 - Docker Compose test profile builds and runs
 - training SP container builds and passes its startup smoke test
 
-Later security-sensitive lessons still need their own focused coverage for request signing, encryption, certificate rollover, IdP-initiated behavior, and logout. Day 8 response-signature integrity and IdP verification-trust failures are now covered.
+Later security-sensitive lessons still need focused coverage for certificate rollover, IdP-initiated behavior, and logout. Day 8 response-signature integrity and IdP verification-trust failures are covered. Day 9 request signing, SP metadata key publication, and encrypted-Assertion decryption failures are now covered.
 
 ---
 
@@ -1403,6 +1415,224 @@ That distinction is intentional.
 Repository tests prove the local Service Provider's signature-enforcement behavior.
 
 The live lab proves the learner can connect Okta signing configuration, certificate evidence, SAML XML, and AcmeHR acceptance without weakening validation or rotating the live certificate.
+
+---
+
+# Day 9 implementation status
+
+The repository now contains the application-side and focused test coverage needed for the Day 9 request-signing and Assertion-encryption lab.
+
+Day 9 keeps real SP private keys outside the repository. The committed key material used by the focused tests is disposable public training material and must never be reused in a real application, tenant, or environment.
+
+## Day 9 configuration
+
+`SamlRelyingPartyConfig.java` now supports optional SP-owned credentials through external resource locations:
+
+~~~text
+acmehr.saml.sp-signing-private-key-location
+acmehr.saml.sp-signing-certificate-location
+
+acmehr.saml.sp-decryption-private-key-location
+acmehr.saml.sp-decryption-certificate-location
+
+acmehr.saml.name-id-format
+~~~
+
+When Day 9 credentials are omitted, the earlier no-SP-key baseline remains unchanged.
+
+When a signing credential is configured:
+
+~~~text
+private signing key + X.509 certificate
+        |
+        v
+signingX509Credentials
+        |
+        v
+authnRequestsSigned(true)
+        |
+        v
+explicit NameID format required
+~~~
+
+The decryption credential is configured independently through `decryptionX509Credentials`.
+
+The configuration rejects a half-configured key pair instead of silently continuing with only a certificate or only a private key.
+
+## Proven automatically
+
+~~~text
+[x] No Day 9 credentials preserves the earlier unsigned-AuthnRequest baseline
+
+[x] SP signing and decryption credentials load from external resource locations
+
+[x] AuthnRequest signing is forced when the SP signing credential is configured
+
+[x] NameID format is required when request signing is configured
+
+[x] An incomplete signing key/certificate pair is rejected
+
+[x] The generated AuthnRequest still uses HTTP-Redirect
+
+[x] The generated Redirect contains SAMLRequest, RelayState, SigAlg, and Signature
+
+[x] SigAlg is RSA-SHA256 in the focused training fixture
+
+[x] The actual Redirect-binding signature verifies with the matching AcmeHR public certificate
+
+[x] The same exact signed Redirect does not verify with a different public certificate
+
+[x] The wrong-certificate test changes only the verification certificate
+
+[x] The decoded AuthnRequest contains NameIDPolicy
+
+[x] The decoded Redirect AuthnRequest does not need an embedded ds:Signature
+
+[x] Issuer, Destination, ACS, and HTTP-POST response binding remain correct
+
+[x] SP metadata publishes a signing KeyDescriptor with the configured public certificate
+
+[x] SP metadata publishes an encryption KeyDescriptor with the configured public certificate
+
+[x] SP metadata does not publish private-key material
+
+[x] EncryptedAssertion is present in the focused encrypted Response fixture
+
+[x] The plaintext Assertion element is not present in that serialized encrypted fixture
+
+[x] EncryptedAssertion decrypts with the matching AcmeHR private key
+
+[x] The matching-key path continues through normal SAML validation and creates an authenticated principal
+
+[x] The same encrypted SAML is rejected with DECRYPTION_ERROR when AcmeHR uses a different private key
+
+[x] The wrong-decryption-key test first proves the exact fixture succeeds with the matching key
+
+[x] Spring Security / OpenSAML perform the application SAML processing
+
+[x] No production private key is committed by the Day 9 implementation
+~~~
+
+The focused Day 9 tests are:
+
+~~~text
+SamlRelyingPartyConfigTests
+    loadsAcmeHrRelyingPartyFromTestMetadataWithoutDay9Credentials
+    loadsDay9SigningAndDecryptionCredentials
+    requiresNameIdFormatWhenSigningCredentialIsConfigured
+    rejectsIncompleteSigningCredentialPair
+
+SamlAuthenticationRequestTests
+    spInitiatedLoginCreatesSignedDay9RedirectBindingAuthnRequest
+    signedRedirectRequestDoesNotVerifyWithDifferentCertificate
+
+SamlServiceProviderMetadataTests
+    publishedMetadataAdvertisesExpectedEntityIdAcsAndDay9PublicKeys
+
+SamlEncryptedAssertionTests
+    encryptedAssertionDecryptsWithMatchingAcmeHrPrivateKey
+    encryptedAssertionIsRejectedWithDifferentPrivateKey
+~~~
+
+These tests isolate the Day 9 failure directions:
+
+~~~text
+AcmeHR -> Okta
+
+same signed Redirect
+matching AcmeHR verification certificate
+    -> verifies
+
+same signed Redirect
+different verification certificate
+    -> does not verify
+~~~
+
+and:
+
+~~~text
+Okta -> AcmeHR
+
+same encrypted SAML
+matching AcmeHR private decryption key
+    -> authenticates
+
+same encrypted SAML
+different private decryption key
+    -> DECRYPTION_ERROR
+~~~
+
+## Spring Security 7.1.1 encrypted-Assertion boundary
+
+The focused decryption fixture deliberately uses:
+
+~~~text
+signed outer Response
++
+encrypted Assertion
+~~~
+
+It does not use a signed inner Assertion as the primary Day 9 decryption proof.
+
+The repository library review tracks Spring Security issue #19606 for the pinned Spring Security 7.1.1 / OpenSAML 5 stack. The issue is currently open and describes namespace movement during encrypted-Assertion processing that can change the canonicalized inner Assertion and cause its signature digest to fail.
+
+Do not work around that behavior by disabling signature validation, accepting unsigned SAML, or adding custom XML Signature verification.
+
+Recheck the upstream issue or move to a fixed supported version before relying on a signed inner Assertion as the primary encrypted-Assertion fixture.
+
+Issue:
+
+https://github.com/spring-projects/spring-security/issues/19606
+
+## Proven during the learner's live Day 9 Okta lab
+
+~~~text
+[ ] The learner records the original Okta Signed Requests and Assertion Encryption settings
+
+[ ] The AcmeHR request-signing public certificate fingerprint is identified
+
+[ ] The AcmeHR encryption public certificate fingerprint is identified
+
+[ ] SP metadata signing and encryption KeyDescriptor values are inspected
+
+[ ] Only public certificate material is exchanged with Okta
+
+[ ] NameIDPolicy is proven before Signed Requests is enabled
+
+[ ] Okta Signature Certificate matches the AcmeHR request-signing key pair
+
+[ ] A fresh Redirect contains SAMLRequest, RelayState, SigAlg, and Signature
+
+[ ] The signed Redirect is accepted by Okta and the login flow continues
+
+[ ] Okta Encryption Certificate matches the AcmeHR decryption key pair
+
+[ ] The learner records the configured Encryption Algorithm
+
+[ ] The learner records the configured Key Transport Algorithm
+
+[ ] A fresh live SAMLResponse contains EncryptedAssertion
+
+[ ] Base64 decoding does not reveal the encrypted Assertion plaintext
+
+[ ] AcmeHR decrypts the live Assertion and creates the authenticated application session
+
+[ ] The learner runs SamlAuthenticationRequestTests
+
+[ ] The learner runs SamlEncryptedAssertionTests
+
+[ ] The learner can explain the wrong request-verification-certificate failure
+
+[ ] The learner can explain the wrong decryption-key failure
+
+[ ] No AcmeHR private key is uploaded to Okta
+
+[ ] The intended Day 9 baseline is confirmed or restored
+~~~
+
+Repository tests prove the local request-signing, metadata-publication, and Assertion-decryption behavior.
+
+The live lab proves that the learner can connect those local guarantees to the real Okta Signature Certificate, Signed Requests, Encryption Certificate, Assertion Encryption, and browser transaction without deliberately breaking the live certificate relationships.
 
 ---
 
