@@ -1,6 +1,7 @@
 package com.acme.training.acmehr.security;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -154,7 +155,7 @@ class SamlAuthenticationRequestTests {
         assertThat(signatureValue).isNotBlank();
         assertThat(Base64.getDecoder().decode(signatureValue)).isNotEmpty();
 
-        assertThat(verifyRedirectSignature(location)).isTrue();
+        assertThat(verifyRedirectSignature(location, readTestCertificate())).isTrue();
 
         Document document = parseXml(decodeRedirectRequest(encodedRequest));
         Element authnRequest = document.getDocumentElement();
@@ -200,7 +201,47 @@ class SamlAuthenticationRequestTests {
                         containsString("/saml2/authenticate?registrationId=acmehr")));
     }
 
-    private static boolean verifyRedirectSignature(String location) throws Exception {
+    @Test
+    void signedRedirectRequestDoesNotVerifyWithDifferentCertificate() throws Exception {
+        String location = signedAuthnRequestLocation();
+
+        X509Certificate matchingCertificate = readTestCertificate();
+        X509Certificate differentCertificate = readIdpMetadataCertificate();
+
+        assertThat(differentCertificate).isNotEqualTo(matchingCertificate);
+
+        assertThat(verifyRedirectSignature(location, matchingCertificate))
+                .isTrue();
+
+        assertThat(verifyRedirectSignature(location, differentCertificate))
+                .isFalse();
+    }
+
+    private String signedAuthnRequestLocation() throws Exception {
+        var result = mockMvc.perform(get("/saml2/authenticate/acmehr")
+                        .with(request -> {
+                            request.setScheme("http");
+                            request.setServerName("localhost");
+                            request.setServerPort(8000);
+                            return request;
+                        }))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        String location = result.getResponse().getHeader("Location");
+
+        assertThat(location)
+                .isNotNull()
+                .contains("SAMLRequest=")
+                .contains("SigAlg=")
+                .contains("Signature=");
+
+        return location;
+    }
+
+    private static boolean verifyRedirectSignature(
+            String location,
+            X509Certificate verificationCertificate) throws Exception {
         String rawSamlRequest = rawQueryParameter(location, "SAMLRequest");
         String rawRelayState = rawQueryParameter(location, "RelayState");
         String rawSigAlg = rawQueryParameter(location, "SigAlg");
@@ -211,7 +252,7 @@ class SamlAuthenticationRequestTests {
                 + "&SigAlg=" + rawSigAlg;
 
         Signature verifier = Signature.getInstance("SHA256withRSA");
-        verifier.initVerify(readTestCertificate());
+        verifier.initVerify(verificationCertificate);
         verifier.update(signedInput.getBytes(StandardCharsets.UTF_8));
 
         return verifier.verify(Base64.getDecoder().decode(encodedSignature));
@@ -221,6 +262,29 @@ class SamlAuthenticationRequestTests {
         return (X509Certificate) CertificateFactory.getInstance("X.509")
                 .generateCertificate(new ByteArrayInputStream(
                         normalizePem(TEST_CERTIFICATE_PEM).getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private static X509Certificate readIdpMetadataCertificate() throws Exception {
+        try (InputStream input = SamlAuthenticationRequestTests.class
+                .getResourceAsStream("/idp-metadata.xml")) {
+
+            assertThat(input).isNotNull();
+
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+
+            Document metadata = factory.newDocumentBuilder().parse(input);
+            String encodedCertificate = metadata
+                    .getElementsByTagNameNS(XML_SIGNATURE_NS, "X509Certificate")
+                    .item(0)
+                    .getTextContent()
+                    .replaceAll("\\s", "");
+
+            byte[] der = Base64.getDecoder().decode(encodedCertificate);
+
+            return (X509Certificate) CertificateFactory.getInstance("X.509")
+                    .generateCertificate(new ByteArrayInputStream(der));
+        }
     }
 
     private static String queryParameter(String location, String name) {
