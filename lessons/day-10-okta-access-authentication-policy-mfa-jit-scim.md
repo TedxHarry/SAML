@@ -84,6 +84,16 @@ What is the user allowed to do inside AcmeHR?
 
 Every arrow is a different troubleshooting boundary.
 
+This is a logical troubleshooting map.
+
+It is not a promise that the browser will always show these decisions in exactly this order.
+
+For example, Okta may need to identify or authenticate Priya before it can show that she is not assigned to the requested app.
+
+Existing Okta session state can also change which prompts are visible.
+
+Use evidence to identify the failed decision rather than guessing from screen order.
+
 Do not call all of them:
 
 ~~~text
@@ -113,7 +123,7 @@ Do not use one protocol name for both jobs.
 
 ---
 
-# 3. Application assignment happens before SAML success
+# 3. Application assignment is a gate to SAML success
 
 An Okta app integration can be assigned to:
 
@@ -124,7 +134,13 @@ Assignment answers:
 
 > Is this Okta user allowed to use this app integration?
 
-If Priya is not assigned, Okta can stop the transaction before AcmeHR receives a valid SAMLResponse.
+For the AcmeHR training app, we use normal assignment-based access.
+
+If Priya is not assigned, the normal course flow cannot complete successfully, and Okta can stop the transaction before AcmeHR receives a valid SAMLResponse.
+
+Okta also documents Federation Broker Mode for specific scenarios where SSO can work without pre-assigning the app to each user.
+
+That mode is not part of this course.
 
 That means:
 
@@ -344,9 +360,13 @@ The better question is:
 
 ---
 
-# 13. After assignment comes authentication policy
+# 13. Assignment and authentication policy are separate Okta decisions
 
-Once the user is eligible to use the app, Okta evaluates authentication requirements.
+Application assignment answers whether the user is eligible to use the app integration.
+
+Authentication policy answers what the user must prove for the access attempt.
+
+Depending on existing session state and how the user reaches the app, the visible prompts may not appear in the same order as this lesson's troubleshooting table.
 
 On Okta Identity Engine, two policy areas matter here:
 
@@ -1587,6 +1607,9 @@ Current Okta behavior was checked against these official references while buildi
 
 - Add a SAML Identity Provider and inbound Okta JIT behavior:
   https://help.okta.com/oie/en-us/Content/Topics/Security/idp-add-saml.htm
+
+- Federation Broker Mode, the assignment-model exception not used by this course:
+  https://help.okta.com/en-us/content/topics/apps/apps-fbm-main.htm
 
 ---
 
