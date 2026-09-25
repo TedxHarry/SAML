@@ -845,23 +845,28 @@ https://github.com/spring-projects/spring-security/issues/19606
 
 ---
 
-# Part 26: Run the local request-signing trust failure test
+# Part 26: Run the focused signed-AuthnRequest tests
 
-The Day 9 implementation must include a focused local test for:
+The repository now contains:
 
 ~~~text
-request signed with private key A
-
-verification with matching public certificate A
-    PASS
-
-same request signature
-
-verification with public certificate B
-    FAIL
+lab-sp/src/test/java/com/acme/training/acmehr/security/SamlAuthenticationRequestTests.java
 ~~~
 
-Run the Day 9 request-signing test class documented by the implementation.
+Run that class through the Docker test runner.
+
+## macOS or Linux
+
+~~~bash
+docker compose --profile test run --rm validation-tests \
+  mvn -B -ntp -Dtest=SamlAuthenticationRequestTests test
+~~~
+
+## Windows PowerShell
+
+~~~powershell
+docker compose --profile test run --rm validation-tests mvn -B -ntp -Dtest=SamlAuthenticationRequestTests test
+~~~
 
 Expected Maven result:
 
@@ -869,11 +874,75 @@ Expected Maven result:
 BUILD SUCCESS
 ~~~
 
-That means the negative assertion was proven.
+The Day 9 class now includes:
 
-It does not mean the wrong certificate worked.
+~~~text
+spInitiatedLoginCreatesSignedDay9RedirectBindingAuthnRequest
 
-Do not create this failure by changing the live Okta certificate.
+signedRedirectRequestDoesNotVerifyWithDifferentCertificate
+~~~
+
+The first test proves the generated Redirect request contains:
+
+~~~text
+SAMLRequest
+RelayState
+SigAlg
+Signature
+~~~
+
+and that the actual Redirect-binding signature verifies with the matching AcmeHR public certificate.
+
+It also proves the decoded AuthnRequest still contains the expected:
+
+~~~text
+Issuer
+Destination
+AssertionConsumerServiceURL
+ProtocolBinding
+NameIDPolicy
+~~~
+
+The second test is baseline-first.
+
+It generates one signed Redirect request and keeps that exact request unchanged:
+
+~~~text
+same SAMLRequest
+same RelayState
+same SigAlg
+same Signature
+~~~
+
+Then it verifies that request twice:
+
+~~~text
+matching AcmeHR public certificate
+    PASS
+
+different public certificate
+    FAIL
+~~~
+
+The deliberately different certificate comes from the repository's test IdP metadata.
+
+No second request-signing private key is introduced.
+
+That matters because the failure is isolated to one changed input:
+
+~~~text
+verification certificate
+~~~
+
+The Java Signature API is used here only as an independent test assertion around Spring Security's generated HTTP-Redirect signature.
+
+Spring Security still performs the actual AuthnRequest signing in the application.
+
+A Maven result of BUILD SUCCESS means the test successfully proved both the known-good and wrong-certificate outcomes.
+
+It does not mean the wrong certificate was accepted.
+
+Do not create this failure by changing the live Okta Signature Certificate.
 
 ---
 
@@ -1082,7 +1151,9 @@ This is a required Day 9 result.
 | Key Transport Algorithm |  |
 | EncryptedAssertion present? |  |
 | Did AcmeHR decrypt and authenticate? |  |
-| Wrong request verification certificate rejected locally? |  |
+| SamlAuthenticationRequestTests BUILD SUCCESS? |  |
+| Matching AcmeHR signing certificate verified the same Redirect? |  |
+| Different verification certificate rejected the same Redirect? |  |
 | SamlEncryptedAssertionTests BUILD SUCCESS? |  |
 | Matching AcmeHR decryption key accepted locally? |  |
 | Different private key returned DECRYPTION_ERROR? |  |
@@ -1319,7 +1390,11 @@ Do not mark Day 9 complete until you can prove:
 
 [ ] I proved AcmeHR decrypted and created an authenticated session
 
-[ ] I ran the local wrong request-signing trust test
+[ ] I ran SamlAuthenticationRequestTests
+
+[ ] I proved the same signed Redirect verifies with the matching AcmeHR certificate
+
+[ ] I proved the same signed Redirect does not verify with a different certificate
 
 [ ] I ran SamlEncryptedAssertionTests
 
@@ -1374,12 +1449,14 @@ Keep in your private training notes:
 10. Key Transport Algorithm
 11. redacted outer SAMLResponse showing EncryptedAssertion
 12. successful encrypted-login result
-13. wrong request-signing trust test result
-14. SamlEncryptedAssertionTests result
-15. matching-key decryption proof
-16. wrong-key DECRYPTION_ERROR proof
-17. both troubleshooting records
-18. final baseline proof
+13. SamlAuthenticationRequestTests result
+14. matching-certificate Redirect verification proof
+15. different-certificate Redirect rejection proof
+16. SamlEncryptedAssertionTests result
+17. matching-key decryption proof
+18. wrong-key DECRYPTION_ERROR proof
+19. both troubleshooting records
+20. final baseline proof
 
 Do not save:
 
