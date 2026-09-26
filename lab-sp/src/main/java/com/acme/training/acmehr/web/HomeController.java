@@ -2,6 +2,8 @@ package com.acme.training.acmehr.web;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+import com.acme.training.acmehr.lifecycle.AcmeHrTrainingAccountService;
+import com.acme.training.acmehr.lifecycle.AcmeHrTrainingAccountService.JitResult;
 import com.acme.training.acmehr.security.AcmeHrClaimMapper;
 import com.acme.training.acmehr.security.AcmeHrClaimMapper.ClaimMapping;
 import org.springframework.beans.factory.ObjectProvider;
@@ -18,12 +20,15 @@ public class HomeController {
 
     private final ObjectProvider<RelyingPartyRegistrationRepository> relyingParties;
     private final AcmeHrClaimMapper claimMapper;
+    private final AcmeHrTrainingAccountService trainingAccountService;
 
     public HomeController(
             ObjectProvider<RelyingPartyRegistrationRepository> relyingParties,
-            AcmeHrClaimMapper claimMapper) {
+            AcmeHrClaimMapper claimMapper,
+            AcmeHrTrainingAccountService trainingAccountService) {
         this.relyingParties = relyingParties;
         this.claimMapper = claimMapper;
+        this.trainingAccountService = trainingAccountService;
     }
 
     @GetMapping("/")
@@ -38,8 +43,33 @@ public class HomeController {
     }
 
     @GetMapping("/protected")
-    public String protectedPage(Authentication authentication, Model model) {
+    public String protectedPage(
+            Authentication authentication,
+            HttpServletResponse response,
+            Model model) {
+
         model.addAttribute("principalName", authentication.getName());
+
+        if (!(authentication instanceof Saml2AssertionAuthentication)) {
+            model.addAttribute("samlAccepted", false);
+            model.addAttribute("jitEvaluated", false);
+            model.addAttribute("jitStatus", "NOT_EVALUATED");
+            model.addAttribute("localAccountPresent", false);
+            model.addAttribute("applicationAccessAllowed", false);
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return "protected";
+        }
+
+        ClaimMapping mapping = claimMapper.map(authentication);
+        JitResult jitResult = trainingAccountService.matchOrCreate(mapping);
+
+        addClaimMapping(model, mapping);
+        addJitEvidence(model, jitResult);
+
+        if (jitResult.failed()) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        }
+
         return "protected";
     }
 
@@ -101,6 +131,18 @@ public class HomeController {
         model.addAttribute("mappedRoles", mapping.mappedRoles());
         model.addAttribute("missingRequiredClaims", mapping.missingRequiredClaims());
         model.addAttribute("hasMissingRequiredClaims", mapping.hasMissingRequiredClaims());
+    }
+
+    private void addJitEvidence(Model model, JitResult jitResult) {
+        model.addAttribute("samlAccepted", true);
+        model.addAttribute("jitEvaluated", true);
+        model.addAttribute("jitStatus", jitResult.status().name());
+        model.addAttribute("jitMatchKey", jitResult.matchKey());
+        model.addAttribute("jitMatchValue", jitResult.matchValue());
+        model.addAttribute("jitErrors", jitResult.errors());
+        model.addAttribute("trainingAccount", jitResult.account());
+        model.addAttribute("localAccountPresent", jitResult.account() != null);
+        model.addAttribute("applicationAccessAllowed", !jitResult.failed());
     }
 
     private boolean isAuthenticated(Authentication authentication) {
