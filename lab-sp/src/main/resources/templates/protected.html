@@ -5,99 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AcmeHR Protected Page</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background: #f5f7fa;
-            color: #1f2937;
-        }
-
-        .page {
-            max-width: 760px;
-            margin: 0 auto;
-            padding: 48px 20px;
-        }
-
-        .card {
-            background: #ffffff;
-            border: 1px solid #dfe3e8;
-            border-radius: 12px;
-            padding: 28px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-        }
-
-        h1 {
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-size: 30px;
-        }
-
-        .subtitle {
-            margin-top: 0;
-            color: #5f6b7a;
-        }
-
-        .success {
-            margin: 24px 0;
-            padding: 16px;
-            border: 1px solid #dfe3e8;
-            border-radius: 10px;
-            background: #fafafa;
-        }
-
-        .success strong {
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        .detail {
-            margin: 18px 0;
-            padding: 14px 16px;
-            border: 1px solid #dfe3e8;
-            border-radius: 8px;
-        }
-
-        .detail-label {
-            margin: 0 0 5px;
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .detail-value {
-            margin: 0;
-            font-weight: 700;
-            word-break: break-word;
-        }
-
-        .actions {
-            margin-top: 24px;
-        }
-
-        .button {
-            display: inline-block;
-            padding: 11px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 700;
-            border: 1px solid #1f2937;
-            color: #1f2937;
-            background: #ffffff;
-        }
-
-        .learning-note {
-            margin-top: 28px;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 20px;
-        }
-
-        .learning-note h2 {
-            margin-top: 0;
-            font-size: 18px;
-        }
-
-        .learning-note p {
-            line-height: 1.55;
-        }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; color: #1f2937; }
+        .page { max-width: 820px; margin: 0 auto; padding: 48px 20px; }
+        .card { background: #ffffff; border: 1px solid #dfe3e8; border-radius: 12px; padding: 28px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+        h1 { margin-top: 0; margin-bottom: 8px; font-size: 30px; }
+        .subtitle { margin-top: 0; color: #5f6b7a; line-height: 1.5; }
+        .status-grid { display: grid; gap: 14px; margin: 24px 0; }
+        .status-card, .detail { padding: 16px; border: 1px solid #dfe3e8; border-radius: 10px; background: #fafafa; }
+        .status-card h2 { margin: 0 0 6px; font-size: 18px; }
+        .status-value { margin: 0; font-weight: 700; }
+        .status-explanation { margin: 8px 0 0; line-height: 1.5; color: #4b5563; }
+        .details { display: grid; gap: 12px; margin-top: 24px; }
+        .detail { background: #ffffff; }
+        .detail-label { margin: 0 0 5px; font-size: 13px; color: #6b7280; }
+        .detail-value { margin: 0; font-weight: 700; word-break: break-word; }
+        .error-list { margin: 8px 0 0; padding-left: 22px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+        .button { display: inline-block; padding: 11px 18px; border-radius: 8px; text-decoration: none; font-weight: 700; border: 1px solid #1f2937; color: #1f2937; background: #ffffff; }
+        .learning-note { margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+        .learning-note h2 { margin-top: 0; font-size: 18px; }
+        .learning-note p { line-height: 1.55; }
     </style>
 </head>
 <body>
@@ -105,31 +32,137 @@
     <section class="card">
         <h1>AcmeHR Protected Page</h1>
         <p class="subtitle">
-            This page is available only after the Service Provider accepts the SAML login.
+            Day 10 separates successful SAML authentication from AcmeHR local-account
+            lifecycle and application access.
         </p>
 
-        <div class="success">
-            <strong>Application session: Active</strong>
-            AcmeHR accepted the authentication and created an authenticated application session.
+        <div class="status-grid">
+            <div class="status-card">
+                <h2>1. SAML authentication</h2>
+                <p class="status-value"
+                   th:text="${samlAccepted ? 'PASS' : 'NOT ACCEPTED'}">
+                    NOT ACCEPTED
+                </p>
+                <p class="status-explanation" th:if="${samlAccepted}">
+                    Spring Security accepted the SAML authentication before AcmeHR evaluated
+                    the training-account lifecycle step.
+                </p>
+                <p class="status-explanation" th:unless="${samlAccepted}">
+                    AcmeHR does not have a validated SAML authentication to use for JIT.
+                </p>
+            </div>
+
+            <div class="status-card">
+                <h2>2. AcmeHR local-account lifecycle</h2>
+                <p class="status-value"
+                   th:text="${jitEvaluated ? 'JIT ' + jitStatus : 'NOT EVALUATED'}">
+                    NOT EVALUATED
+                </p>
+                <p class="status-explanation" th:if="${jitStatus == 'CREATED'}">
+                    No existing training account matched. AcmeHR created one from validated
+                    SAML claim data.
+                </p>
+                <p class="status-explanation" th:if="${jitStatus == 'MATCHED'}">
+                    An existing training account matched this authenticated principal.
+                    AcmeHR did not create a duplicate account.
+                </p>
+                <p class="status-explanation" th:if="${jitStatus == 'FAILED'}">
+                    SAML authentication passed, but the AcmeHR training-account contract
+                    failed after federation.
+                </p>
+            </div>
+
+            <div class="status-card">
+                <h2>3. AcmeHR application access</h2>
+                <p class="status-value"
+                   th:text="${applicationAccessAllowed ? 'ALLOWED' : 'DENIED'}">
+                    DENIED
+                </p>
+                <p class="status-explanation" th:if="${applicationAccessAllowed}">
+                    AcmeHR has a matched or newly created local training account for this
+                    authenticated user.
+                </p>
+                <p class="status-explanation" th:unless="${applicationAccessAllowed}">
+                    The authenticated identity has not completed the local account requirement
+                    for this page.
+                </p>
+            </div>
         </div>
 
-        <div class="detail">
-            <p class="detail-label">Authenticated principal</p>
-            <p class="detail-value" th:text="${principalName}">
-                user@example.com
-            </p>
+        <div class="details">
+            <div class="detail">
+                <p class="detail-label">Authenticated principal</p>
+                <p class="detail-value" th:text="${principalName}">
+                    user@example.com
+                </p>
+            </div>
+
+            <div class="detail" th:if="${jitEvaluated}">
+                <p class="detail-label">JIT match key</p>
+                <p class="detail-value">
+                    <span th:text="${jitMatchKey}">principalName</span>
+                    =
+                    <span th:text="${jitMatchValue}">user@example.com</span>
+                </p>
+            </div>
+
+            <div class="detail" th:if="${jitEvaluated}">
+                <p class="detail-label">Local training account present</p>
+                <p class="detail-value"
+                   th:text="${localAccountPresent ? 'YES' : 'NO'}">
+                    NO
+                </p>
+            </div>
+
+            <div class="detail" th:if="${localAccountPresent}">
+                <p class="detail-label">Training account employeeNumber</p>
+                <p class="detail-value" th:text="${trainingAccount.employeeNumber}">
+                    E20427
+                </p>
+            </div>
+
+            <div class="detail" th:if="${jitStatus == 'FAILED'}">
+                <p class="detail-label">JIT failure reason</p>
+                <ul class="error-list">
+                    <li th:each="error : ${jitErrors}" th:text="${error}">
+                        employeeNumber is required to create an AcmeHR training account.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="detail" th:if="${hasMissingRequiredClaims}">
+                <p class="detail-label">Validated AcmeHR claims currently missing</p>
+                <ul class="error-list">
+                    <li th:each="claim : ${missingRequiredClaims}" th:text="${claim}">
+                        employeeNumber
+                    </li>
+                </ul>
+            </div>
         </div>
 
         <div class="actions">
             <a class="button" href="/">Back to home</a>
+            <a class="button"
+               href="/claims"
+               th:if="${samlAccepted}">
+                View validated claims
+            </a>
         </div>
 
         <div class="learning-note">
-            <h2>What this proves</h2>
+            <h2>What this page proves</h2>
             <p>
-                Reaching this page proves more than a successful Okta sign-in. The browser
-                returned to the Service Provider, the SAML login was accepted, and AcmeHR
-                now has its own authenticated application session.
+                <strong>SAML PASS</strong> proves federation authentication was accepted.
+                It does not automatically prove that AcmeHR local-account creation succeeded.
+            </p>
+            <p>
+                <strong>JIT FAILED</strong> is an application lifecycle failure after
+                federation. Do not change the SAML signing certificate, Audience, Recipient,
+                or AuthnRequest signature when those checks already passed.
+            </p>
+            <p>
+                On a later login, <strong>JIT MATCHED</strong> proves AcmeHR found the
+                existing local account before considering new-account creation.
             </p>
         </div>
     </section>
