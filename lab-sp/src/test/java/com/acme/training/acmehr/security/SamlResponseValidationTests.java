@@ -145,6 +145,45 @@ class SamlResponseValidationTests {
     }
 
     @Test
+    void signedIdpInitiatedResponseWithoutRequestIsAccepted() {
+        Response response = validResponse();
+        response.setInResponseTo(null);
+        confirmationData(response).setInResponseTo(null);
+
+        Authentication authentication = authenticatePrepared(sign(response), false);
+
+        assertThat(authentication.isAuthenticated()).isTrue();
+        assertThat(authentication.getName()).isEqualTo(PRINCIPAL);
+    }
+
+    @Test
+    void responseClaimingAnAuthnRequestIsRejectedWhenNoRequestWasSaved() {
+        Response response = validResponse();
+
+        Saml2AuthenticationException error = assertThrows(
+                Saml2AuthenticationException.class,
+                () -> authenticatePrepared(sign(response), false));
+
+        assertThat(error.getSaml2Error().getErrorCode())
+                .isEqualTo(Saml2ErrorCodes.INVALID_IN_RESPONSE_TO);
+    }
+
+    @Test
+    void idpInitiatedResponseWithWrongAudienceIsRejected() {
+        Response response = validResponse();
+        response.setInResponseTo(null);
+        confirmationData(response).setInResponseTo(null);
+        audience(response).setURI("urn:acme:training:wrong-sp");
+
+        Saml2AuthenticationException error = assertThrows(
+                Saml2AuthenticationException.class,
+                () -> authenticatePrepared(sign(response), false));
+
+        assertThat(error.getSaml2Error().getErrorCode())
+                .isEqualTo(Saml2ErrorCodes.INVALID_ASSERTION);
+    }
+
+    @Test
     void wrongIssuerIsRejected() {
         Response response = validResponse();
         response.getIssuer().setValue("https://wrong-idp.acme.test");
@@ -227,12 +266,17 @@ class SamlResponseValidationTests {
     }
 
     private static Authentication authenticatePrepared(Response response) {
+        return authenticatePrepared(response, true);
+    }
+
+    private static Authentication authenticatePrepared(Response response, boolean hasSavedRequest) {
         OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
         provider.setAssertionValidator(OpenSaml5AuthenticationProvider.AssertionValidator.builder()
                 .clockSkew(TEST_CLOCK_SKEW)
                 .build());
 
-        return Objects.requireNonNull(provider.authenticate(authenticationToken(response)));
+        return Objects.requireNonNull(provider.authenticate(
+                authenticationToken(response, hasSavedRequest)));
     }
 
     private static Saml2AuthenticationException assertRejected(Response response, String expectedErrorCode) {
@@ -375,9 +419,13 @@ class SamlResponseValidationTests {
         }
     }
 
-    private static Saml2AuthenticationToken authenticationToken(Response response) {
-        AbstractSaml2AuthenticationRequest request = mock(AbstractSaml2AuthenticationRequest.class);
-        when(request.getId()).thenReturn(AUTHN_REQUEST_ID);
+    private static Saml2AuthenticationToken authenticationToken(
+            Response response, boolean hasSavedRequest) {
+        AbstractSaml2AuthenticationRequest request = null;
+        if (hasSavedRequest) {
+            request = mock(AbstractSaml2AuthenticationRequest.class);
+            when(request.getId()).thenReturn(AUTHN_REQUEST_ID);
+        }
         return new Saml2AuthenticationToken(relyingPartyRegistration(), serialize(response), request);
     }
 
