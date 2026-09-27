@@ -836,6 +836,16 @@ Throughout the course:
 - [x] Day 9 Spring Security 7.1.1 encrypted-Assertion issue boundary documented
 - [x] Day 9 final review and pressure test
 - [x] Day 9 closed
-- [ ] Day 10 and later content
+- [x] Day 10 Okta assignment, authentication policy, MFA, JIT, and SCIM-boundary lesson
+- [x] Day 10 assignment, MFA, first-login JIT, and SCIM decision lab
+- [x] Day 10 AcmeHR in-memory training-account service and explicit principal match key
+- [x] Day 10 SAML PASS / JIT CREATED, MATCHED, or FAILED evidence on /protected
+- [x] Day 10 missing-employeeNumber, repeat-login, duplicate-prevention, and MVC tests
+- [x] Day 10 current Okta app sign-in rule, catch-all, and reauthentication behavior checked
+- [x] Day 10 learner path corrected for temporary-policy scope and fresh SAML repeat login
+- [x] Day 10 SCIM kept as a lifecycle decision, without claiming a provisioning endpoint exists
+- [x] Day 10 final cross-file review and pressure test
+- [x] Day 10 closed
+- [ ] Day 11 and later content
 
-Days 1 through 9 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
+Days 1 through 10 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
