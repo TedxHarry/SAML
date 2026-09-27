@@ -192,6 +192,11 @@ Later lessons may add carefully selected identity information.
 
 Do not show every assertion attribute by default.
 
+On Day 10, `/protected` also shows the local account result after SAML
+authentication: `JIT CREATED`, `JIT MATCHED`, or `JIT FAILED`. The page shows
+`SAML PASS` separately, so a local account failure does not look like a SAML
+validation failure.
+
 ---
 
 ## 3. Transaction view
@@ -1004,6 +1009,8 @@ lab-sp/
     │   │       │   ├── SamlRelyingPartyConfig.java
     │   │       │   ├── SecurityConfig.java
     │   │       │   └── AcmeHrClaimMapper.java
+    │   │       ├── lifecycle/
+    │   │       │   └── AcmeHrTrainingAccountService.java
     │   │       └── web/
     │   │           └── HomeController.java
     │   └── resources/
@@ -1019,6 +1026,8 @@ lab-sp/
 ```
 
 Day 7 added the claim mapper and the `/claims` and `/manager` learner views.
+Day 10 added the in-memory training account service and the account result on
+`/protected`.
 
 Later certificate, diagnostic, and lesson-specific files should be added only when their purpose becomes necessary.
 
@@ -1070,10 +1079,14 @@ Current automated coverage includes:
 - SP metadata contains no private-key material
 - encrypted Assertion decrypts with the matching AcmeHR private key
 - the same encrypted Assertion is rejected with `DECRYPTION_ERROR` when a different private key is used
+- missing `employeeNumber` blocks creation of a new training account without changing SAML authentication
+- a valid mapping creates one account; later visits match it by `principalName`
+- `/protected` shows separate SAML, local-account, and application-access results
+- failed JIT returns HTTP 403; created or matched accounts return HTTP 200
 - Docker Compose test profile builds and runs
 - training SP container builds and passes its startup smoke test
 
-Later security-sensitive lessons still need focused coverage for certificate rollover, IdP-initiated behavior, and logout. Day 8 response-signature integrity and IdP verification-trust failures are covered. Day 9 request signing, SP metadata key publication, and encrypted-Assertion decryption failures are now covered.
+Later security-sensitive lessons still need focused coverage for certificate rollover, IdP-initiated behavior, and logout. Day 8 response-signature integrity and IdP verification-trust failures are covered. Day 9 request signing, SP metadata key publication, and encrypted-Assertion decryption failures are covered. Day 10 account matching and first-login creation are covered by service and MVC tests.
 
 ---
 
@@ -1633,6 +1646,71 @@ https://github.com/spring-projects/spring-security/issues/19606
 Repository tests prove the local request-signing, metadata-publication, and Assertion-decryption behavior.
 
 The live lab proves that the learner can connect those local guarantees to the real Okta Signature Certificate, Signed Requests, Encryption Certificate, Assertion Encryption, and browser transaction without deliberately breaking the live certificate relationships.
+
+---
+
+# Day 10 implementation status
+
+The Day 10 training-account model lives in `AcmeHrTrainingAccountService.java`.
+`HomeController.java` calls it on `/protected` after Spring has produced a
+SAML authentication and `AcmeHrClaimMapper` has mapped its validated claims.
+The service does not parse SAML messages or perform signature checks.
+
+It looks for an existing account by the authenticated `principalName` first.
+If it finds one, the result is `MATCHED`. If it finds none, it requires
+`employeeNumber` to create an account. A missing value produces `FAILED` and
+leaves the account absent. Creation uses `putIfAbsent`, so two requests for
+the same principal cannot create two entries.
+
+On `/protected`, the learner can see three separate results:
+
+| SAML authentication | AcmeHR account result | Application access |
+| --- | --- | --- |
+| Accepted | `CREATED` | Allowed, HTTP 200 |
+| Accepted | `MATCHED` | Allowed, HTTP 200 |
+| Accepted | `FAILED` | Denied, HTTP 403 |
+| Authenticated by a non-SAML test identity | Not evaluated | Denied, HTTP 403 |
+
+The page also shows the match key and value, whether a local account is
+present, and the reason when JIT fails. The `/claims` and `/manager` pages
+retain their Day 7 claim and authorization behavior; visiting them does not
+create a training account.
+
+An unauthenticated browser request starts the normal SAML login flow before
+it reaches this page.
+
+## What the tests cover
+
+`AcmeHrTrainingAccountServiceTests` checks missing `employeeNumber`, first
+creation, later matching, duplicate prevention, and reset. Its
+`secondLoginMatchesExistingAccountBeforeCreateTimeValidation` test also
+checks that an existing account still matches when a later assertion has no
+`employeeNumber`.
+
+`Day10JitMvcTests` checks the rendered `/protected` page and HTTP status for
+a non-SAML authentication, failed first-login creation, successful creation,
+and later matching. These MVC tests supply a synthetic authenticated
+principal. They prove the account step after authentication; they do not
+exercise a real Okta SAML transaction.
+
+Run both classes from `lab-sp`:
+
+~~~bash
+docker compose --profile test run --rm validation-tests \
+  mvn -B -ntp -Dtest=AcmeHrTrainingAccountServiceTests,Day10JitMvcTests test
+~~~
+
+## Live lab and limits
+
+The learner still needs the [Day 10 lab](../labs/day-10/README.md) to verify
+Okta app assignment, the app sign-in policy and MFA, and a live SAML login
+followed by an AcmeHR JIT failure and recovery.
+
+Training accounts exist only in process memory. Restarting the SP clears all
+of them, so the lab uses a disposable instance for its reset. There is no
+account-list page or durable database. This JIT exercise does not implement
+SCIM, background profile updates, or deactivation; the lab treats SCIM as a
+separate lifecycle design decision.
 
 ---
 
