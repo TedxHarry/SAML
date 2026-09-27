@@ -1,6 +1,7 @@
 package com.acme.training.acmehr.security;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -44,6 +45,13 @@ import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureSupport;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
@@ -52,14 +60,26 @@ import org.springframework.security.saml2.provider.service.authentication.Abstra
 import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
+import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest(properties = "acmehr.saml.idp-metadata-url=")
+@AutoConfigureMockMvc
+@Import(SamlResponseValidationTests.TestRegistration.class)
 class SamlResponseValidationTests {
 
     private static final String REGISTRATION_ID = "acmehr";
@@ -135,6 +155,18 @@ class SamlResponseValidationTests {
         TEST_PRIVATE_KEY = readPrivateKey(TEST_PRIVATE_KEY_PEM);
     }
 
+    @Autowired
+    private MockMvc mockMvc;
+
+    @TestConfiguration
+    static class TestRegistration {
+
+        @Bean
+        RelyingPartyRegistrationRepository day11RelyingPartyRegistrationRepository() {
+            return new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistration());
+        }
+    }
+
     @Test
     void validSignedResponseIsAccepted() {
         Authentication authentication = authenticate(validResponse());
@@ -181,6 +213,55 @@ class SamlResponseValidationTests {
 
         assertThat(error.getSaml2Error().getErrorCode())
                 .isEqualTo(Saml2ErrorCodes.INVALID_ASSERTION);
+    }
+
+    @Test
+    void idpInitiatedAcsPostCreatesApplicationSession() throws Exception {
+        Response response = validResponse();
+        response.setInResponseTo(null);
+        confirmationData(response).setInResponseTo(null);
+
+        var result = postToAcs(sign(response))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+        mockMvc.perform(get("/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("applicationSessionActive", true));
+    }
+
+    @Test
+    void acsPostWithUnsavedRequestIdDoesNotCreateApplicationSession() throws Exception {
+        postToAcs(sign(validResponse()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(unauthenticated());
+    }
+
+    @Test
+    void idpInitiatedAcsPostWithWrongAudienceDoesNotCreateApplicationSession() throws Exception {
+        Response response = validResponse();
+        response.setInResponseTo(null);
+        confirmationData(response).setInResponseTo(null);
+        audience(response).setURI("urn:acme:training:wrong-sp");
+
+        postToAcs(sign(response))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(unauthenticated());
+    }
+
+    private ResultActions postToAcs(Response response) throws Exception {
+        String encoded = Base64.getEncoder().encodeToString(
+                serialize(response).getBytes(StandardCharsets.UTF_8));
+        return mockMvc.perform(post("/saml/acs")
+                .param("SAMLResponse", encoded)
+                .with(request -> {
+                    request.setScheme("http");
+                    request.setServerName("localhost");
+                    request.setServerPort(8000);
+                    return request;
+                }));
     }
 
     @Test
