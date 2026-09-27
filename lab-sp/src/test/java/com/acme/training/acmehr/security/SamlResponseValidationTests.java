@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.namespace.QName;
 
@@ -217,6 +219,40 @@ class SamlResponseValidationTests {
 
     @Test
     void idpInitiatedAcsPostCreatesApplicationSession() throws Exception {
+        MockHttpSession session = idpInitiatedSession();
+        mockMvc.perform(get("/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("applicationSessionActive", true));
+    }
+
+    @Test
+    void localLogoutRequiresThePageCsrfTokenAndInvalidatesTheAcmeHrSession() throws Exception {
+        MockHttpSession session = idpInitiatedSession();
+        String home = mockMvc.perform(get("/").session(session))
+                .andExpect(model().attribute("applicationSessionActive", true))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(home).contains("action=\"/logout\"", "method=\"post\"", "Sign out of AcmeHR");
+        Matcher tokenField = Pattern.compile(
+                "<input[^>]*name=\"_csrf\"[^>]*value=\"([^\"]+)\"")
+                .matcher(home);
+        assertThat(tokenField.find()).isTrue();
+        String csrfToken = tokenField.group(1);
+
+        mockMvc.perform(post("/logout").session(session))
+                .andExpect(status().isForbidden());
+        assertThat(session.isInvalid()).isFalse();
+        mockMvc.perform(get("/").session(session))
+                .andExpect(model().attribute("applicationSessionActive", true));
+
+        mockMvc.perform(post("/logout").session(session).param("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection());
+        assertThat(session.isInvalid()).isTrue();
+        mockMvc.perform(get("/"))
+                .andExpect(model().attribute("applicationSessionActive", false));
+    }
+
+    private MockHttpSession idpInitiatedSession() throws Exception {
         Response response = validResponse();
         response.setInResponseTo(null);
         confirmationData(response).setInResponseTo(null);
@@ -227,9 +263,7 @@ class SamlResponseValidationTests {
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(session).isNotNull();
-        mockMvc.perform(get("/").session(session))
-                .andExpect(status().isOk())
-                .andExpect(model().attribute("applicationSessionActive", true));
+        return session;
     }
 
     @Test
