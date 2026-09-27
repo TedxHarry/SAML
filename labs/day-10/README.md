@@ -140,6 +140,11 @@ AcmeHR protected page
     OPENS
 ~~~
 
+The page should show `SAML PASS`, followed by `JIT CREATED` or `JIT MATCHED`,
+and `ALLOWED`. A first login needs `employeeNumber` to create the local
+training account. If the page shows `JIT FAILED`, fix the baseline before
+starting the assignment and MFA exercises.
+
 Do not start Day 10 failure testing from an already-broken SAML baseline.
 
 ---
@@ -986,43 +991,52 @@ The policy experiment should not require any SAML claim or certificate change.
 
 # Part 26: Day 10 AcmeHR JIT implementation checkpoint
 
-Do not run the next live JIT incident until the repository provides an application-side training account model.
+The training account service and `/protected` page now provide this checkpoint.
+From `lab-sp`, run:
 
-The implementation must prove these behaviors locally before you depend on them in Okta:
-
-~~~text
-[ ] SAML authentication is accepted before AcmeHR JIT logic runs
-
-[ ] AcmeHR can distinguish an existing local training account from no local account
-
-[ ] the JIT match key is explicit
-
-[ ] JIT creation uses only validated SAML data
-
-[ ] employeeNumber is required for the training-account creation contract
-
-[ ] missing employeeNumber does not become a fake SAML signature or Audience failure
-
-[ ] failed JIT blocks AcmeHR application access that requires a local account
-
-[ ] successful JIT creates the training account once
-
-[ ] later logins match the existing account instead of creating duplicates
-
-[ ] learner-visible evidence separates SAML PASS from JIT PASS / FAIL
-
-[ ] training-account state can be reset safely for the lab
+~~~bash
+docker compose --profile test run --rm validation-tests \
+  mvn -B -ntp -Dtest=AcmeHrTrainingAccountServiceTests,Day10JitMvcTests test
 ~~~
 
-If these checks are not implemented yet, stop the JIT portion here.
+In Windows PowerShell, run the same command on one line, without the `\`:
 
-Do not pretend the current Spring authenticated principal is already a complete lifecycle implementation.
+~~~powershell
+docker compose --profile test run --rm validation-tests mvn -B -ntp -Dtest=AcmeHrTrainingAccountServiceTests,Day10JitMvcTests test
+~~~
+
+Look for `BUILD SUCCESS`. The service tests check the missing `employeeNumber`
+failure, creation, match-before-create behavior, and duplicate prevention.
+The MVC tests check the page and HTTP response:
+
+~~~text
+non-SAML authentication   -> NOT ACCEPTED / NOT EVALUATED / DENIED (403)
+SAML with no employeeNumber -> PASS / JIT FAILED / DENIED (403)
+SAML with employeeNumber    -> PASS / JIT CREATED / ALLOWED (200)
+second visit, same account  -> PASS / JIT MATCHED / ALLOWED (200)
+~~~
+
+These tests use synthetic post-authentication claim data. They check the
+AcmeHR account step after SAML authentication; they do not replace your live
+Okta login. The training accounts live only in memory and disappear when the
+SP process restarts.
 
 ---
 
 # Part 27: Confirm Maya has no AcmeHR local training account
 
-After the Day 10 implementation checkpoint exists, use the application-side training-account view documented by that implementation.
+Restart the running training SP before Maya's first JIT attempt. This clears
+**all** in-memory training accounts, so use the disposable course instance,
+not an application shared with other learners. From `lab-sp`, if you started
+the service with `docker compose up`, run:
+
+~~~bash
+docker compose restart acmehr-training-sp
+~~~
+
+If your earlier lab is still running as the named `acmehr-day9` container,
+use `docker restart acmehr-day9` instead. Check
+`http://localhost:8000/actuator/health` returns `UP` before continuing.
 
 Confirm:
 
@@ -1031,10 +1045,12 @@ Maya SAML identity
     known to Okta
 
 Maya AcmeHR local training account
-    NOT PRESENT
+    NOT PRESENT after the in-memory reset
 ~~~
 
-Do not delete or alter the primary user's account to create this incident.
+There is no separate account-list page. The first `/protected` result will
+show `Local training account present: NO` when the creation attempt fails.
+Do not delete or alter the primary user's Okta account to create this incident.
 
 ---
 
@@ -1080,7 +1096,9 @@ Do not upload the Assertion to a public decoder.
 
 # Part 30: Prove SAML authentication succeeded first
 
-Use the Day 10 application evidence.
+On the `/protected` page, check the three results in order. The response
+should be HTTP 403 because application access was denied, even though the
+page shows `SAML authentication: PASS`.
 
 Confirm:
 
@@ -1103,17 +1121,20 @@ Then inspect the JIT result.
 Expected:
 
 ~~~text
-existing AcmeHR account match
+AcmeHR local-account lifecycle
+    JIT FAILED
+
+AcmeHR application access
+    DENIED
+
+JIT match key
+    principalName = Maya's authenticated principal
+
+Local training account present
     NO
 
-JIT creation attempted
-    YES
-
-JIT creation
-    FAIL
-
-reason
-    employeeNumber required
+JIT failure reason
+    employeeNumber is required to create an AcmeHR training account.
 ~~~
 
 This is the central Day 10 proof.
@@ -1205,7 +1226,7 @@ Use a new private or incognito transaction.
 
 Authenticate as Maya.
 
-Confirm:
+On `/protected`, confirm:
 
 ~~~text
 SAML authentication
@@ -1215,16 +1236,17 @@ existing AcmeHR account match
     NO
 
 JIT creation
-    PASS
+    JIT CREATED
 
 AcmeHR local account
-    CREATED
+    PRESENT; employeeNumber = E20427
 
 application access
     ALLOWED
 ~~~
 
-Record the local account identifier created by the training implementation.
+The page should return HTTP 200. Record `principalName`, the training
+account's match key. This model does not generate a separate account ID.
 
 Do not record secrets or session cookies.
 
@@ -1251,6 +1273,10 @@ JIT new-account creation
 duplicate account
     NOT CREATED
 ~~~
+
+The page should show `JIT MATCHED`, `Local training account present: YES`,
+and `ALLOWED`. Do not restart the SP between creation and this login; the
+account is held in memory.
 
 This proves matching happens before account creation.
 
