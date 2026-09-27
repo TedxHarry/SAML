@@ -4,7 +4,7 @@
 
 Today, take two routes to the same AcmeHR application: start at AcmeHR and start at the Okta tile. Keep a record of what the browser actually sends. Then check which session survives a local logout and an Okta sign-out.
 
-The code you have today supports the AcmeHR-started SAML login. Its `SecurityConfig` does not explicitly enable SAML Single Logout (SLO), and the app has no learner-facing logout button. Test the Okta tile rather than assuming it works. The SLO section is a design checkpoint until both sides are configured and tested.
+The code you have today supports the AcmeHR-started SAML login and has a local sign-out button. Its `SecurityConfig` does not enable SAML Single Logout (SLO). Test the Okta tile rather than assuming it works. The SLO section is a design checkpoint until both sides are configured and tested.
 
 Your guiding question is:
 
@@ -67,9 +67,11 @@ Do not try an external URL as a destination. `RelayState` is navigation state; i
 
 Start a working AcmeHR login in one browser profile. Open Okta in another tab **of that same profile** and confirm that Okta still recognizes the lab user. Keep the Okta tab open.
 
-AcmeHR has no app logout button. Spring Security's ordinary local logout may be available at `http://localhost:8000/logout`: open that URL, inspect the page, and if it offers a sign-out confirmation, use its form. The confirmed action should POST to `/logout` with CSRF protection. Do not try to log out by sending a bare GET request or deleting a cookie and calling that an AcmeHR logout.
+Return to `http://localhost:8000/`. Confirm **AcmeHR application session: Active**, then click **Sign out of AcmeHR**. In the Network panel, confirm the form sent a POST to `/logout`. The form includes a CSRF token; do not copy its value into your notes. This is local logout. You should not see a SAML `LogoutRequest` sent to Okta.
 
-After the confirmation, check AcmeHR's home page for **Not active** and check Okta separately. Then request `/protected` again in the same profile. If Okta still has a session, the browser may complete a new SAML login without asking for credentials; confirm a **new** `SAMLResponse` POST, rather than relying on the lack of a password prompt. If the local logout route is unavailable or does not invalidate the AcmeHR session, record that as an implementation gap and leave this trial ungraded. Do not infer local logout from a page reload.
+Spring Security may send you to its login page after the POST. Go back to `http://localhost:8000/` and confirm **Not active**. Check the Okta tab separately: is the test user still signed in? Then request `/protected` again in the same profile. If Okta still has a session, the browser may complete a new SAML login without asking for credentials. Confirm a **new** `SAMLResponse` POST rather than relying on the lack of a password prompt.
+
+If the button does not appear while AcmeHR shows an active session, the POST fails, or the home page still says **Active** after sign-out, record the first failed step. Do not treat a page reload, a bare GET to `/logout`, or deleting a browser cookie as proof that the server ended its session.
 
 # Part 5: End Okta's session and check AcmeHR
 
@@ -106,7 +108,7 @@ Use your traces to finish these sentences:
 4. “After local logout, the ___ session ended, while ___.”
 5. “We cannot claim SLO works here yet because ___.”
 
-Your answer should say what you observed. If the tile or local logout did not work, explain the first point of failure and leave that row unresolved until the matching implementation step lands.
+Your answer should say what you observed. If the tile or local logout did not work, explain the first point of failure and leave that row unresolved until you have tested a fix.
 
 ## Restore the training state
 
