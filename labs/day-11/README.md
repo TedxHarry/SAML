@@ -69,7 +69,7 @@ Start a working AcmeHR login in one browser profile. Open Okta in another tab **
 
 Return to `http://localhost:8000/`. Confirm **AcmeHR application session: Active**, then click **Sign out of AcmeHR**. In the Network panel, confirm the form sent a POST to `/logout`. The form includes a CSRF token; do not copy its value into your notes. This is local logout. You should not see a SAML `LogoutRequest` sent to Okta.
 
-Spring Security may send you to its login page after the POST. Go back to `http://localhost:8000/` and confirm **Not active**. Check the Okta tab separately: is the test user still signed in? Then request `/protected` again in the same profile. If Okta still has a session, the browser may complete a new SAML login without asking for credentials. Confirm a **new** `SAMLResponse` POST rather than relying on the lack of a password prompt.
+The POST should redirect you to `http://localhost:8000/`, where **AcmeHR application session: Not active** should appear. Check the Okta tab separately: is the test user still signed in? Then request `/protected` again in the same profile. If Okta still has a session, the browser may complete a new SAML login without asking for credentials. Confirm a **new** `SAMLResponse` POST rather than relying on the lack of a password prompt.
 
 If the button does not appear while AcmeHR shows an active session, the POST fails, or the home page still says **Active** after sign-out, record the first failed step. Do not treat a page reload, a bare GET to `/logout`, or deleting a browser cookie as proof that the server ended its session.
 
