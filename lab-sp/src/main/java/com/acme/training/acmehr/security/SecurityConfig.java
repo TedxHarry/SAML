@@ -20,6 +20,7 @@ public class SecurityConfig {
                 .requestMatchers("/", "/actuator/health", "/error").permitAll()
                 .requestMatchers("/protected", "/claims", "/manager").authenticated()
                 .anyRequest().permitAll());
+        http.logout(logout -> logout.logoutSuccessUrl("/"));
 
         if (relyingParties.getIfAvailable() != null) {
             http.saml2Login(saml2 -> saml2.loginProcessingUrl("/saml/acs"));
