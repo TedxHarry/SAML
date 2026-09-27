@@ -560,12 +560,25 @@ Record:
 | --- | --- |
 | Assigned app sign-in policy |  |
 | Does this policy serve other apps? |  |
+| Rule that matches the primary test user |  |
+| Required factor types |  |
+| Prompt for authentication frequency |  |
 
 Do not edit the shared default policy.
 
 Okta documents that new apps can use a shared default policy.
 
 Changing that shared policy can affect other apps.
+
+Before changing anything, make one comparison login. In a new private
+window, sign in to Okta as the primary test user first. Then open
+`http://localhost:8000/protected` in the **same** window. Record whether
+AcmeHR asks for another authentication challenge after the Okta session
+already exists. Close every private window when you finish.
+
+If the original rule already requires two factors every time AcmeHR opens,
+the planned temporary rule may produce the same experience. Do not call an
+unchanged prompt an unexpected MFA incident.
 
 ---
 
@@ -658,6 +671,11 @@ Description
 ~~~
 
 Save it.
+
+Okta adds a catch-all rule to a new app sign-in policy. That rule allows
+access with two factor types. The `Day10 step-up` rule you add next targets
+the primary test user, but the catch-all still applies to everyone else
+assigned to any app using this policy.
 
 Do not modify the shared default policy.
 
@@ -761,21 +779,34 @@ Confirm the policy is assigned to AcmeHR Training.
 
 Do not add other applications to this temporary policy.
 
+Use a training app accessed only by your test users for this exercise. If
+other people use AcmeHR Training, compare the temporary policy's catch-all
+with their original sign-in requirements **before** assigning the policy.
+Do not attach it if those users would get an unintended change. The group
+condition isolates the `Day10 step-up` rule; it does not remove the
+temporary policy's catch-all rule.
+
 ---
 
 # Part 19: Start the unexpected-MFA incident
 
-Use a fresh private or incognito browser session.
-
-Open:
+Open a fresh private or incognito window. Sign in to Okta as the primary
+test user to establish an Okta session. Wait more than ten seconds after
+that authentication, then open AcmeHR at:
 
 ~~~text
 http://localhost:8000/protected
 ~~~
 
-Sign in with the primary assigned test user.
+Use the **same** private window. It has an Okta session but no AcmeHR
+application session yet. Compare the challenge with the baseline you
+recorded in Part 14. Okta allows a brief grace period just after the user
+authenticates, even for an every-time app rule, so opening AcmeHR
+immediately may hide the prompt you are trying to observe.
 
-Observe the authentication prompts.
+If there is no additional challenge compared with the baseline, do not
+record one. Check the matched rule, enrolled authenticators, and System
+Log evidence before drawing a conclusion.
 
 If the rule requires two factor types, record the factor challenges that Okta actually presents.
 
@@ -1254,9 +1285,12 @@ Do not record secrets or session cookies.
 
 # Part 35: Prove the second login matches instead of creating a duplicate
 
-Sign out of the local training session using the existing course method.
-
-Start another fresh SAML login as Maya.
+Close **all** private or incognito windows used for Maya's first login.
+Open a new private window, go to `http://localhost:8000/protected`, and
+authenticate as Maya again. In the browser Network panel, confirm this
+visit produced a new SAMLResponse POST to `/saml/acs`. The SP does not
+provide a learner-facing logout control in this lab. A page reload in the
+same application session would not prove a second SAML login.
 
 Expected:
 
