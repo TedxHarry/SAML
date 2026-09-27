@@ -1312,8 +1312,8 @@ Use this when someone says:
 | SAMLResponse reached AcmeHR? |  |
 | SAML validation passed? |  |
 | Existing AcmeHR account matched? |  |
-| JIT account creation attempted? |  |
-| JIT account creation succeeded? |  |
+| If no account matched, what JIT result did AcmeHR show? |  |
+| If JIT failed, what reason did AcmeHR show? |  |
 | SCIM provisioning expected? |  |
 | SCIM target account state correct? |  |
 | Application authorization allowed requested function? |  |
@@ -1343,18 +1343,16 @@ For a failure after AcmeHR receives and validates SAML, you also need SP-side ev
 
 # 54. What AcmeHR evidence can prove
 
-AcmeHR should be able to separate:
+The Day 10 `/protected` page separates:
 
 ~~~text
 SAML authentication accepted
 
-existing local account matched
+existing local account matched, or a new one created
 
-new account creation attempted
+missing employeeNumber blocked new-account creation
 
-new account creation failed
-
-application authorization denied
+application access allowed or denied
 ~~~
 
 One generic:
@@ -1363,9 +1361,9 @@ One generic:
 Login failed
 ~~~
 
-message is not enough for the Day 10 lab.
-
-The implementation will add only the evidence needed for the lesson.
+message is not enough for the Day 10 lab. When JIT fails, the page shows
+the missing value and that no local training account was created. It does
+not claim a database create was attempted after that validation failed.
 
 ---
 
