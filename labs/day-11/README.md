@@ -18,7 +18,7 @@ You need the [Day 11 lesson](../../lessons/day-11-initiation-relaystate-sessions
 
 If you cannot launch the Okta tile, record that limitation and complete the AcmeHR-started and session parts. Do not create a fake SAML response to imitate Okta.
 
-Use one browser profile for a single comparison, and a fresh private profile when the instructions call for a clean start. In the Network panel, turn on **Preserve log** before navigation. Do not share raw SAML responses, cookies, passwords, MFA codes, private keys, or unmasked personal data.
+Use one browser profile for a single comparison. When a part calls for a clean start, close **all** private windows in that browser before opening a new one. Opening another private window while one remains open can keep the same cookies and session. Record your redacted observations before closing the windows. In the Network panel, turn on **Preserve log** before navigation. Do not share raw SAML responses, cookies, passwords, MFA codes, private keys, or unmasked personal data.
 
 # Part 1: Prove the existing AcmeHR-started flow
 
@@ -40,7 +40,7 @@ Write down whether the response refers to this browser's outstanding request. A 
 
 # Part 2: Test the Okta tile from a clean start
 
-Close that private window. Open a **new** private window, sign in to Okta, and click the AcmeHR Training tile if available. Preserve the network trace.
+After recording Part 1, close **all** private windows in that browser. Open a new private window, sign in to Okta, and click the AcmeHR Training tile if available. Preserve the network trace.
 
 Look for the first request to AcmeHR. Did the browser POST `SAMLResponse` to `/saml/acs` without an earlier AcmeHR `SAMLRequest` in this window? Record whether `InResponseTo` is absent, whether `RelayState` is present, the final URL, and whether AcmeHR shows an active session. Do not infer an SP request from an Okta login prompt: find the actual SAML request in the trace.
 
@@ -53,13 +53,13 @@ Look for the first request to AcmeHR. Did the browser POST `SAMLResponse` to `/s
 | `RelayState` present? |  |
 | Final page and AcmeHR session state |  |
 
-If the tile succeeds, note that **this setup** accepted the unsolicited response; the absence of `InResponseTo` is expected when no SP request existed. If it fails, preserve the error and find the first failed step: tile availability, ACS delivery, SP registration lookup, message validation, or session creation. Do not turn off signature checks, destination checks, or request matching for SP-started logins to make it pass. A successful `/protected` login does not prove the tile must work.
+If the tile succeeds, note that **this setup** accepted the unsolicited response; the absence of `InResponseTo` is expected when no SP request existed. If it fails, preserve the error and find the first failed step: tile availability, ACS delivery, SP registration lookup, message validation, or session creation. Do not turn off signature checks, destination checks, or request matching for SP-started logins to make it pass. A successful `/protected` login does not prove the tile must work. A successful tile launch also does not establish login CSRF or replay protection; those need a separate security review.
 
 # Part 3: Check where `RelayState` sends you
 
-Open a new private window and start again at `http://localhost:8000/claims`. After login, record the final URL. Look at the outgoing and returning `RelayState` values, but do not assume they contain `/claims` as plain text. The SP may keep the original page in its own session instead.
+After recording Part 2, close **all** private windows in that browser. Open a new private window and start at `http://localhost:8000/claims`. After login, record the final URL. Look at the outgoing and returning `RelayState` values, but do not assume they contain `/claims` as plain text. The SP may keep the original page in its own session instead.
 
-Now compare this with your Okta-tile trial. In the training app's Okta **Sign On** settings, record the current **Default Relay State** if the setting is available. The tile has no AcmeHR page to remember. If you control this non-production app and want one reversible trial, save the original value, set a same-app path such as `/claims`, launch the tile in a new private window, and record what actually changes. Restore the original value immediately afterward. If Okta or AcmeHR rejects or ignores that value, record that outcome; do not claim the setting implements a deep link on its own.
+Now compare this with your Okta-tile trial. In the training app's Okta **Sign On** settings, record the current **Default Relay State** if the setting is available. The tile has no AcmeHR page to remember. If you control this non-production app and want one reversible trial, save the original value and set a same-app path such as `/claims`. Close all private windows before opening a new one to launch the tile, then record what actually changes. Restore the original value immediately afterward. If Okta or AcmeHR rejects or ignores that value, record that outcome; do not claim the setting implements a deep link on its own.
 
 Do not try an external URL as a destination. `RelayState` is navigation state; it is not a substitute for `InResponseTo` or a reason to accept an unsafe redirect.
 
@@ -75,7 +75,7 @@ If the button does not appear while AcmeHR shows an active session, the POST fai
 
 # Part 5: End Okta's session and check AcmeHR
 
-Establish both sessions again in a fresh profile. Sign out using Okta's own user menu, without using AcmeHR's local logout. Before trying a new SAML login, revisit an already-open AcmeHR protected page and its home page in the same profile. Record whether the AcmeHR session is still active. If an Okta policy or configured logout feature changes the result, report the observed behavior; the two sessions are still separate things to inspect.
+Use a fresh profile for this trial: if you have been using private windows, close all of them before opening a new one. Establish both sessions, then sign out using Okta's own user menu, without using AcmeHR's local logout. Before trying a new SAML login, revisit an already-open AcmeHR protected page and its home page in the same profile. Record whether the AcmeHR session is still active. If an Okta policy or configured logout feature changes the result, report the observed behavior; the two sessions are still separate things to inspect.
 
 | Trial | Okta session after action | AcmeHR session after action | Fresh ACS POST on next AcmeHR login? |
 | --- | --- | --- | --- |
@@ -121,3 +121,4 @@ Restore Okta's original Default Relay State if you changed it. Leave Okta SLO di
 - [Spring Security: Producing AuthnRequests](https://docs.spring.io/spring-security/reference/servlet/saml2/login/authentication-requests.html) — stored requests and session binding.
 - [Spring Security: Handling Logouts](https://docs.spring.io/spring-security/reference/servlet/authentication/logout.html) — local logout and session invalidation.
 - [Spring Security: Performing Single Logout](https://docs.spring.io/spring-security/reference/servlet/saml2/logout.html) — SLO prerequisites and protocol endpoints.
+- [Chrome Help: Browse in Incognito mode](https://support.google.com/chrome/answer/95464?co=GENIE.Platform%3DDesktop&hl=en) — private windows share a session until all are closed.
