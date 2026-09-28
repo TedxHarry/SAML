@@ -4,7 +4,7 @@
 
 Imagine Priya opens `/manager` in AcmeHR. Now imagine she clicks AcmeHR's tile in Okta instead. Both journeys might end at the same assertion consumer service (ACS), but they begin with different evidence. Today you will trace that difference, follow `RelayState`, identify two separate browser sessions, and decide what a logout action actually ended.
 
-Our current AcmeHR SP implements SAML login at `/saml/acs`. It does not explicitly configure SAML Single Logout (SLO). Treat the IdP-initiated and SLO cases below as investigation and design exercises until the lab verifies or implements them. Never report a successful live flow based on this lesson alone.
+Our AcmeHR SP receives SAML responses at `/saml/acs`. Focused tests show that a valid signed response sent without an SP request can create an AcmeHR session. A real Okta tile still needs a browser trial. AcmeHR also has a local sign-out button, but SAML Single Logout (SLO) is not configured. Treat SLO as a design exercise for now, and report live results only after you test them.
 
 ---
 
@@ -28,7 +28,9 @@ Ask first: **Did AcmeHR issue an `AuthnRequest` for this browser journey?** A SA
 
 In the SP-initiated case, capture the outgoing request ID and the returning response's `InResponseTo` value. Check the response and subject confirmation data in context, and check that the SP can find its stored request in this browser's session. A matching string alone is weaker evidence than a match to the outstanding request held by the SP.
 
-In a genuinely IdP-initiated flow there was no outstanding SP request ID. Do not invent one or disable request correlation across all logins to make a failing tile launch work. Whether a particular SP library accepts unsolicited responses, and under what checks, is an implementation decision to verify in the running lab. If it accepts them, it must still validate the configured issuer and signing trust, audience, recipient and destination, time conditions, subject confirmation, and replay protections as applicable. Consider the login CSRF risk: an attacker must not be able to cause someone else's browser to adopt the attacker's identity merely by delivering an otherwise valid response. Spring Security explains why keeping the outgoing request in the browser session helps defend against that case.
+In a genuinely IdP-initiated flow there was no outstanding SP request ID. Do not invent one or disable request correlation across all logins to make a failing tile launch work. In our tests, AcmeHR accepts a valid signed response with no `InResponseTo` and rejects a response that claims an unsaved request or has the wrong Audience. That result comes from a local test setup; test your Okta tile separately.
+
+An unsolicited response still needs checks for the configured issuer and signing trust, audience, recipient and destination, time conditions, subject confirmation, and replay protections as applicable. Consider the login CSRF risk: an attacker must not be able to cause someone else's browser to adopt the attacker's identity merely by delivering an otherwise valid response. Spring Security explains why keeping the outgoing request in the browser session helps defend against that case.
 
 A response that lacks a matching request after **AcmeHR started login** is a different incident from an intentional Okta tile launch. Compare the browser trace and session state before changing a setting.
 
@@ -67,7 +69,7 @@ Use separate browser profiles or an isolated test account to observe this. A fre
 
 # 6. Say exactly what “logout” means
 
-**Local logout** ends the AcmeHR session. A later visit can start a new SAML login, and an active Okta session may complete it without a password prompt. Ending Okta's own session does not automatically revoke every application session.
+**Local logout** ends the AcmeHR session. When you click **Sign out of AcmeHR**, the home page submits a POST to `/logout` with its CSRF token. AcmeHR invalidates its local session and redirects to `/`, where the session reads **Not active**. A later visit can start a new SAML login, and an active Okta session may complete it without a password prompt. Ending Okta's own session does not automatically revoke every application session.
 
 **SAML Single Logout** is an additional protocol exchange. In an SP-initiated SLO journey, the SP ends its local session and sends a `LogoutRequest` to the IdP; the IdP returns a `LogoutResponse`. In an IdP-initiated SLO journey, the IdP sends a `LogoutRequest` to a participating SP, which validates it, ends the matching local session, and returns a `LogoutResponse`. The request identifies the principal and can contain a `SessionIndex` associated with the login's authentication statement, helping target the right session. Verify signatures, issuer, destination, correlation and status as appropriate to the direction and binding.
 
@@ -79,7 +81,7 @@ Spring Security provides SAML SLO support when the IdP supports it and the regis
 
 Record one trace beginning at an AcmeHR protected URL and one beginning at the Okta tile. For each, write down the first URL, presence of `AuthnRequest`, request ID if present, ACS URL, `InResponseTo` if present, `RelayState` if present, final URL, and whether AcmeHR created a session. Mask assertions, cookies, personal attributes and tokens before sharing captures.
 
-Then end only the AcmeHR session and retry. In a separate trial, end only the Okta session and revisit an AcmeHR page. Explain the observed behavior using the two-session model. Perform an SLO trial only after the lab explicitly configures and verifies both sides; record the request, response and which sessions actually end.
+Then use **Sign out of AcmeHR** to end its local session and retry. In a separate trial, end only the Okta session and revisit an AcmeHR page. Explain the observed behavior using the two-session model. Perform an SLO trial only after the lab explicitly configures and verifies both sides; record the request, response and which sessions actually end.
 
 ## Checkpoint
 
