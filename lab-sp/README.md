@@ -502,13 +502,9 @@ That is an authorization denial, not an authentication failure.
 
 # Logout
 
-Basic local application logout should eventually be supported.
+Day 11 adds a **Sign out of AcmeHR** button when the local application session is active. It sends a POST to `/logout` with the page's CSRF token. Spring Security ends the local session and redirects to `/`, where the home page shows **Not active**. The automated test checks that a POST without the token is rejected and that a valid POST invalidates the session.
 
-Later, when the course reaches SAML Single Logout, the SP can add SLO behavior if the selected library and Okta configuration support the required lab safely.
-
-Day 3 does not need SLO.
-
-Do not add SLO complexity to the first working login.
+This does not sign the user out of Okta. `SecurityConfig` does not enable `saml2Logout`, so the current lab does not perform SAML Single Logout (SLO). See the [Day 11 lab](../labs/day-11/README.md) to compare the two sessions. Day 3 does not need SLO.
 
 ---
 
@@ -542,11 +538,9 @@ The Day 3 lab needs only this successful path.
 
 # IdP-initiated SSO
 
-The SP should eventually support IdP-initiated SSO because the course compares SP-initiated and IdP-initiated behavior later.
+Day 11 tests show that the ACS can accept a valid signed SAML Response sent without an earlier SP request and create an AcmeHR session. They also check that a Response claiming an unsaved request, or carrying the wrong Audience, does not authenticate the user.
 
-Do not expose or teach it on Day 3.
-
-The implementation should simply avoid making later IdP-initiated support impossible.
+The tests use a local IdP fixture. They do not prove that a particular Okta tile is configured correctly; try the real tile and record its result in the [Day 11 lab](../labs/day-11/README.md). Day 3 teaches only SP-initiated SSO.
 
 ---
 
@@ -1083,10 +1077,13 @@ Current automated coverage includes:
 - a valid mapping creates one account; later visits match it by `principalName`
 - `/protected` shows separate SAML, local-account, and application-access results
 - failed JIT returns HTTP 403; created or matched accounts return HTTP 200
+- a signed unsolicited SAML Response without an SP request creates a local session at the ACS
+- an ACS POST claiming an unsaved request, or carrying a wrong Audience, does not authenticate
+- local logout rejects a POST without the page's CSRF token and invalidates the session with it
 - Docker Compose test profile builds and runs
 - training SP container builds and passes its startup smoke test
 
-Later security-sensitive lessons still need focused coverage for certificate rollover, IdP-initiated behavior, and logout. Day 8 response-signature integrity and IdP verification-trust failures are covered. Day 9 request signing, SP metadata key publication, and encrypted-Assertion decryption failures are covered. Day 10 account matching and first-login creation are covered by service and MVC tests.
+Certificate rollover and SAML Single Logout still need focused coverage. Day 8 covers response-signature integrity and IdP verification-trust failures. Day 9 covers request signing, SP metadata key publication, and encrypted-Assertion decryption failures. Day 10 covers account matching and first-login creation. Day 11 covers signed unsolicited responses and local logout in automated tests; a live Okta-tile login still needs a tenant trial.
 
 ---
 
