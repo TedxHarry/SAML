@@ -417,7 +417,7 @@ Hands-on focus:
 - troubleshoot one flow working while the other fails
 - troubleshoot a RelayState destination problem
 - observe Okta and SP sessions separately
-- run a controlled SLO exercise where supported by the lab
+- plan a controlled SLO exercise; run it only after the SP and Okta are configured and tested
 
 ---
 
@@ -624,8 +624,8 @@ SAML/
 |   ├── day-07-claims-attributes-groups-authorization.md
 |   ├── day-08-signing-certificates.md
 |   ├── day-09-request-signing-encryption.md
-|   ├── day-10-okta-access-jit-scim.md
-|   ├── day-11-flows-sessions-logout.md
+|   ├── day-10-okta-access-authentication-policy-mfa-jit-scim.md
+|   ├── day-11-initiation-relaystate-sessions-logout.md
 |   ├── day-12-certificate-rollover.md
 |   ├── day-13-troubleshooting-methodology.md
 |   ├── day-14-blind-incidents.md
@@ -846,6 +846,12 @@ Throughout the course:
 - [x] Day 10 SCIM kept as a lifecycle decision, without claiming a provisioning endpoint exists
 - [x] Day 10 final cross-file review and pressure test
 - [x] Day 10 closed
-- [ ] Day 11 and later content
+- [x] Day 11 login origins, RelayState, sessions, and logout lesson
+- [x] Day 11 browser-trace lab with local logout and an SLO design checkpoint
+- [x] Day 11 signed unsolicited Response acceptance and invalid-response rejection tests
+- [x] Day 11 AcmeHR sign-out button, CSRF-protected POST, session invalidation, and home redirect
+- [x] Day 11 lesson, lab, and SP documentation aligned with the tested behavior
+- [ ] Day 11 final cross-file review and pressure test
+- [ ] Day 12 and later content
 
-Days 1 through 10 are now closed as course artifacts. Learners must still complete each live Okta lab and preserve the required evidence before moving to the next day.
+Days 1 through 10 are closed as course artifacts. Day 11 has local tests and a learner lab, but its live Okta-tile trial still needs tenant evidence and SAML Single Logout remains a design checkpoint. Learners must complete each live Okta lab and preserve the required evidence before moving to the next day.
