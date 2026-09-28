@@ -851,7 +851,9 @@ Throughout the course:
 - [x] Day 11 signed unsolicited Response acceptance and invalid-response rejection tests
 - [x] Day 11 AcmeHR sign-out button, CSRF-protected POST, session invalidation, and home redirect
 - [x] Day 11 lesson, lab, and SP documentation aligned with the tested behavior
-- [ ] Day 11 final cross-file review and pressure test
+- [x] Day 11 final cross-file review and pressure test, including corrected private-session steps
+- [x] Day 11 closed as a course artifact
+- [ ] Day 11 live Okta-tile trial and unsolicited-login security review
 - [ ] Day 12 and later content
 
-Days 1 through 10 are closed as course artifacts. Day 11 has local tests and a learner lab, but its live Okta-tile trial still needs tenant evidence and SAML Single Logout remains a design checkpoint. Learners must complete each live Okta lab and preserve the required evidence before moving to the next day.
+Days 1 through 11 are closed as course artifacts. Day 11's live Okta-tile trial still needs tenant evidence, and login CSRF and replay protection need separate review before using unsolicited login outside the training lab. SAML Single Logout remains a design checkpoint. Learners must complete each live Okta lab and preserve the required evidence before moving to the next day.
