@@ -6,7 +6,10 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +39,8 @@ public class SamlRelyingPartyConfig {
     static final String ACS_LOCATION = "{baseUrl}/saml/acs";
 
     static final String IDP_METADATA_PROPERTY = "acmehr.saml.idp-metadata-url";
+    static final String IDP_VERIFICATION_CERTIFICATE_LOCATIONS_PROPERTY =
+            "acmehr.saml.idp-verification-certificate-locations";
 
     static final String SP_SIGNING_PRIVATE_KEY_LOCATION_PROPERTY =
             "acmehr.saml.sp-signing-private-key-location";
@@ -64,6 +69,8 @@ public class SamlRelyingPartyConfig {
                 environment.getProperty(SP_DECRYPTION_CERTIFICATE_LOCATION_PROPERTY);
         String nameIdFormat =
                 environment.getProperty(NAME_ID_FORMAT_PROPERTY);
+        String idpVerificationCertificateLocations =
+                environment.getProperty(IDP_VERIFICATION_CERTIFICATE_LOCATIONS_PROPERTY);
 
         Saml2X509Credential signingCredential = optionalCredential(
                 signingPrivateKeyLocation,
@@ -89,6 +96,17 @@ public class SamlRelyingPartyConfig {
                 .assertingPartyMetadata(party -> party
                         .singleSignOnServiceBinding(Saml2MessageBinding.REDIRECT));
 
+        List<Saml2X509Credential> explicitIdpVerificationCredentials =
+                explicitIdpVerificationCredentials(
+                        idpVerificationCertificateLocations, resourceLoader);
+        if (explicitIdpVerificationCredentials != null) {
+            builder.assertingPartyMetadata(party -> party
+                    .verificationX509Credentials(credentials -> {
+                        credentials.clear();
+                        credentials.addAll(explicitIdpVerificationCredentials);
+                    }));
+        }
+
         if (signingCredential != null) {
             if (!StringUtils.hasText(nameIdFormat)) {
                 throw new IllegalStateException(
@@ -108,6 +126,27 @@ public class SamlRelyingPartyConfig {
         RelyingPartyRegistration registration = builder.build();
 
         return new InMemoryRelyingPartyRegistrationRepository(registration);
+    }
+
+    private static List<Saml2X509Credential> explicitIdpVerificationCredentials(
+            String certificateLocations, ResourceLoader resourceLoader) {
+
+        if (!StringUtils.hasText(certificateLocations)) {
+            return null;
+        }
+
+        Set<X509Certificate> certificates = new LinkedHashSet<>();
+        for (String rawLocation : certificateLocations.split(",", -1)) {
+            String location = rawLocation.trim();
+            if (!StringUtils.hasText(location)) {
+                throw new IllegalStateException(
+                        IDP_VERIFICATION_CERTIFICATE_LOCATIONS_PROPERTY
+                                + " must contain only non-empty public certificate locations.");
+            }
+            certificates.add(readCertificate(resourceLoader.getResource(location)));
+        }
+
+        return certificates.stream().map(Saml2X509Credential::verification).toList();
     }
 
     private static Saml2X509Credential optionalCredential(
