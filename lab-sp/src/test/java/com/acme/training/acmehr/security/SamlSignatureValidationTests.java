@@ -1,6 +1,9 @@
 package com.acme.training.acmehr.security;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -17,6 +20,7 @@ import javax.xml.namespace.QName;
 
 import net.shibboleth.shared.xml.SerializeSupport;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.MarshallingException;
@@ -44,6 +48,8 @@ import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureSupport;
 
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
@@ -53,6 +59,7 @@ import org.springframework.security.saml2.provider.service.authentication.OpenSa
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -156,15 +163,137 @@ class SamlSignatureValidationTests {
             -----END CERTIFICATE-----
             """;
 
+    /*
+     * Public, disposable Day 12 signing fixtures. These private keys provide
+     * no secrecy and must never be used for a tenant or another application.
+     */
+    private static final String ROLLOVER_B_CERTIFICATE_PEM = """
+            -----BEGIN CERTIFICATE-----
+            MIIDbTCCAlWgAwIBAgIUQmQHR0wuuU/kPHobw/opEzKLzWIwDQYJKoZIhvcNAQEL
+            BQAwRjEfMB0GA1UEAwwWQWNtZSBEYXkgMTIgQiBUZXN0IElkUDEWMBQGA1UECgwN
+            QWNtZSBUcmFpbmluZzELMAkGA1UEBhMCVVMwHhcNMjYxMDAyMTAxMzUxWhcNMzYw
+            OTI5MTAxMzUxWjBGMR8wHQYDVQQDDBZBY21lIERheSAxMiBCIFRlc3QgSWRQMRYw
+            FAYDVQQKDA1BY21lIFRyYWluaW5nMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcN
+            AQEBBQADggEPADCCAQoCggEBALKk+GBZ+SNCx3PwzcSYzBgQSVSPP/Pd4XPST02L
+            A+XIZkSAC0CyDkvgSnTzXPqYDZqrb0S9xuflGmBXkNwq75R/dE4O4afS5z2VKs36
+            YeVdQAWdKo27OepRmWTGptQqUlkwjXThqmYKM6qgCn7rpiNTAjKs1n7SRyNuPIUc
+            oP0BEUhE1TfzA7z2w7tgVRIHvq+NdOixu8OZxa7LO4NSUn5JuXGR1mPG6gfi4k+E
+            VA0G8te6Ya0gQyoJ8zdHdKrb4+M6hmYk65lim43InV3ubeWvb4EwS7HZ6BuDmqy+
+            eQCB2iYMgZxBpS3upBFIPT0UUh/LZ1Dm16ub+Z4qpCD0Z/cCAwEAAaNTMFEwHQYD
+            VR0OBBYEFCHa0/Gb3AMWy7L26OEYD68S6eepMB8GA1UdIwQYMBaAFCHa0/Gb3AMW
+            y7L26OEYD68S6eepMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEB
+            ADyRipqEHhOWMejGLrBYMfMU7E7c4BDiLZ1fonbY3O5p2Ja1P4CPf+N+ZF/GHkdq
+            4pAIyePFivaz0kiQikYfjA3XRwSoC/Yj/DdDa4Wo9wpkUUNku6in8RqI6c/8lWXT
+            G/5CnR5PZ7f+1AeVzgDCaPY81HPH5rLXNRw8ksD+cEUMoD2J47oiTmHLOpTCYeq+
+            foiAjiN0l2rj52R4HmsO+dlOLRy3BB2z620eNJF1cqHxHsYjOz48yOoCdsO2aFS2
+            +noU2kPz7nT6x6lujtjzICAaDTMZOQ8MTDBlJpR6MzRsW4kAYxGfahCjrueRI/Uc
+            rjv+8XgO+eafwzTms+OkeOg=
+            -----END CERTIFICATE-----
+            """;
+
+    private static final String ROLLOVER_B_PRIVATE_KEY_PEM = """
+            -----BEGIN PRIVATE KEY-----
+            MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCypPhgWfkjQsdz
+            8M3EmMwYEElUjz/z3eFz0k9NiwPlyGZEgAtAsg5L4Ep081z6mA2aq29Evcbn5Rpg
+            V5DcKu+Uf3RODuGn0uc9lSrN+mHlXUAFnSqNuznqUZlkxqbUKlJZMI104apmCjOq
+            oAp+66YjUwIyrNZ+0kcjbjyFHKD9ARFIRNU38wO89sO7YFUSB76vjXTosbvDmcWu
+            yzuDUlJ+SblxkdZjxuoH4uJPhFQNBvLXumGtIEMqCfM3R3Sq2+PjOoZmJOuZYpuN
+            yJ1d7m3lr2+BMEux2egbg5qsvnkAgdomDIGcQaUt7qQRSD09FFIfy2dQ5term/me
+            KqQg9Gf3AgMBAAECggEAJIgr6rg7hIRxeTozOhLtGbaq6EnrEBm9swu8/+R/xYu3
+            riZpJq/C0K1rTIM/7lcN4SVRucL9XAqz3CPMEdoN6FYwGI5egw1UEHniqQCc6GSr
+            ZPqA6z7wVwSc08jz8Ms+z9Jn+xDy4a8QZcIYo1/ZN7wP5QEHVCP4PDycz7PNEC/B
+            2LbgQ1yCi2xl8GLC+jZRca/1omqfv9Jajnxk+Xs9+KOa6Kj+ERcYIJtnEMfkEUni
+            4cfja55gZKoBOH5f+CV4Td6d94zwpmeRzpSbb1MddebykIOCg94rDXlZTy7nKjYy
+            g6B+Vosh5nnpS4hGqg24TC/rnXu8uKlM8zKPncuvMQKBgQDq9P/sN3r/XByLMGMc
+            gOJIIozHx3SQUOjC+Qwozxi8O1EB6+TK4XPSoIKRcR5wEuMUFmhoBUP/RHARDnQI
+            nQfTpsdCvw0zFwMxnWYhvZp2zPMjjl206lUEW/584Hi70recWX9jhMqP8KVyXvaV
+            G6Fe3/f3wx2f9K2KK+jy0c6hgwKBgQDCpNuG5C8DMf9KSt7mVcD09xq+bcFPxVK3
+            vTdPGxBgSF3F63OJAVQF81ynlizzlGfeYSXdn7ocfUxymLFWADNVb1HDXOw92eRl
+            Mu1GaRNZOKponHtZ7vhSgZW4SB+ROU0mbAfTunNK2JXy5qpmL4AfpK2oEV7RUn6f
+            MNyq7CNZfQKBgEZ6xcZLAjdVny5VjnV/Z+Fxk79d4mZkDt5lrLMVJHtaY7tq0o/V
+            P1QgV+pe/11pHPrqmdkSM0qAcgl7x2zKBg4ESmOIQeJgddHNQFTAtnQKmKjCzPM3
+            E9eh7N3yy+SzmeZppl/o9oZlDowXVmp2BlsaXhzRR7Kyx9fZwiAMtaoXAoGAb6RL
+            XiWHaZfFzAEBtK+/C0Kojk05sd2GQmk/ThpB3FfloV4ZWJ3wabFala0nf1bB9OVX
+            6LRy9WBQ9vHp1WAsEXbWOO4Veqx9uiXpvpcKSASeiX4nqj/NItW84IRNxuhM/hq8
+            qo6pDmcIKthvKElafcvg5yN/dSSSCBDooQjshakCgYBXo6DjuM8hUQT5bzuOPUEO
+            qW7pdAz3A2ZZqvvCVtxq7hY/FMp6acmb0nmt4uc6QB8dp1wcAkikkF4gGzHb4oga
+            dOfyhORf5knH3hOFzDgS8UXEdayyqV9W2jMNuZDefoj9j+oLOAIuxMIyVZp+MRKi
+            rrzWefwQXJiK5ImZOcadPQ==
+            -----END PRIVATE KEY-----
+            """;
+
+    private static final String ROLLOVER_C_CERTIFICATE_PEM = """
+            -----BEGIN CERTIFICATE-----
+            MIIDbTCCAlWgAwIBAgIUEG6Mh/F1bKCeRvBvVcavuxbrIpUwDQYJKoZIhvcNAQEL
+            BQAwRjEfMB0GA1UEAwwWQWNtZSBEYXkgMTIgQyBUZXN0IElkUDEWMBQGA1UECgwN
+            QWNtZSBUcmFpbmluZzELMAkGA1UEBhMCVVMwHhcNMjYxMDAyMTAxMzUxWhcNMzYw
+            OTI5MTAxMzUxWjBGMR8wHQYDVQQDDBZBY21lIERheSAxMiBDIFRlc3QgSWRQMRYw
+            FAYDVQQKDA1BY21lIFRyYWluaW5nMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcN
+            AQEBBQADggEPADCCAQoCggEBAMO6ZR2pk0fKNAhqao8HRuPO+A210HzB/rSvKqyo
+            pb0CINbg1zA29/STfbAk91+Jq51IC+BjdNsNX54cwLrUNQMmt14CgM6bvlZpuQ1V
+            rENQVy89grCl1MzUwIMcgr5MlxnXM7ULkPGW8sVDg9kK3AHu+0hKfWu7pWJEqyMb
+            UZ5nZBUlka9oIIyyjdZO5qniZSSeKH7gKQ2RqfzKCdY7jKvExhvXcv486Hvv5W3A
+            gRsEKdf02cnQCW2s3ShvUPxkjk2IcGJsQ3sVh1iqG+f4D9pJxyecsH62reOOzPKF
+            Bp0YFyXUVSPoz2n4BdwCH6318/JXMJiwfouJ5y3jnGjmTosCAwEAAaNTMFEwHQYD
+            VR0OBBYEFBBX2IdsnVVxXuCMsIxGLW9ZOEAMMB8GA1UdIwQYMBaAFBBX2IdsnVVx
+            XuCMsIxGLW9ZOEAMMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEB
+            AKY98nG1tuECe4i9UyEWNW9i4/1p0U3DbMmO+Kj4fKFLNC6IU+p5ukoruYtQ/qGL
+            cpHYRzKvGed2mjPQd0sDSp+dq19qYcfZMVxnKIPq18ZL14YadQjvDTIlgiw/1Hdp
+            9yR3r7GXuuaBdo5RjJFcNJDkgYGk4ZAcpLS3P05tCk2KsLR9d5d0/U0c/aSVVzXz
+            CgVbY+sDTisS00wLYrBnkQBp6c5LXOhFvqT2UZ9vvPg6C92tZnBu0befo8ztzTb1
+            CIv4qSXXbsfr+gVYnckUq+0clNyscawgJvIvdRpasNV+XFCrGw5gsljNMlaNXbKG
+            Y3JnVWblcbulKDQCc/8G31s=
+            -----END CERTIFICATE-----
+            """;
+
+    private static final String ROLLOVER_C_PRIVATE_KEY_PEM = """
+            -----BEGIN PRIVATE KEY-----
+            MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDDumUdqZNHyjQI
+            amqPB0bjzvgNtdB8wf60ryqsqKW9AiDW4NcwNvf0k32wJPdfiaudSAvgY3TbDV+e
+            HMC61DUDJrdeAoDOm75WabkNVaxDUFcvPYKwpdTM1MCDHIK+TJcZ1zO1C5DxlvLF
+            Q4PZCtwB7vtISn1ru6ViRKsjG1GeZ2QVJZGvaCCMso3WTuap4mUknih+4CkNkan8
+            ygnWO4yrxMYb13L+POh77+VtwIEbBCnX9NnJ0AltrN0ob1D8ZI5NiHBibEN7FYdY
+            qhvn+A/aSccnnLB+tq3jjszyhQadGBcl1FUj6M9p+AXcAh+t9fPyVzCYsH6Liect
+            45xo5k6LAgMBAAECggEAR7VB94CZo3sa3hxyxs0BNVQuAAPlCtgeI39rkI9HDXy6
+            oE8Gt7Tj2hixOzgH41oyZDCxnTeC6AA50FkzaR92/p0QICKlo0xfCxS3xgFl19GW
+            54lPGL3gvVyS3VY0NlkkIMT9vi4rH7/QWOI362w1l4XBTUZxNeetG1gSJQ4MtI4C
+            LiVTTBe/ZtKjXfM3vZjc/TKSWcAoJhK2XeFxXYJ5fNDiAkjPLgSXJWUU+jXr3rT6
+            wQVQ5GnGjg0tE1dKISmBsv16k/WjdV+2vr1fCmcougd9623VYU5KXSf7gpwDUFOI
+            SNIRtNC+MKwOBr80WWkk4DfvSsp7khDmaL6ZbMq4lQKBgQD+56wmxkNfctz+RdRz
+            TsOqlRdMHYN0gnmOVzW/Wdjk8t8K6mqNZBoJ1GvYJhDHr+82xkqwsR40fy0zlPAf
+            7OQlnuwhPJGGj6lObXWFgZQoIroacWN/0K6+AjPiMRhPaTRQ4nsJbbIGsPVeGYFb
+            ZZEP1IXRipjxCQPu5YjUSoYTjQKBgQDEkaTL7NZk25xAIarPuQu7xSfxHqvVmTI2
+            7K5MXOb1wR0kvWHQacf5dBXRnMJ2Pw4A7J0NcowA2asB5maSyfqC+t0CxBTiUmDn
+            Qk1UvYzMQUpnd+FF+GhFkOgZ+gH2kZVvKVMNiD7NRVzDWutPo6Z29H0Wi7K35sXq
+            XKI3HzYYdwKBgQCoew4hLshXLT9+XT9X24aemB6m85bwilC30VK4IDWo1hKwT1KQ
+            E8rWFm4VlstegR3WkWfKs7boMer5fgbcwyHk787ZBQSW8RuRt+2GiagYgyOI2MtQ
+            Lulgs2oBpjuQOVQX5io2iCe0HoB/atJCS7Z+xRSR9E60eiX8YAB5eKx3/QKBgQCy
+            pQ7Zimgah4AMxMxBNpKUVw0C1PYkDLOXOSj7G5+Hj7dV0YvY5pooerjtpIMTBiFK
+            87+UHhthFnGVK3jjRQ8YBLfhsKSuP2H0KsyvDAmvBFODj267sZPKTXSzTwSDuzHN
+            MghaDw3MbpJstO+QlFFQYMhiOhn1ipUqdn+yivoV5wKBgHj1qAekK06A+3Wbjt0j
+            AORrOjkr7eEFQK+vQhErAs8BAWwnNHRYHqoSwh+j3v+EF/Nyu2K9Q6Gmy5oDreXT
+            8gnKPaOiB4A8MMu+SYxEkHpPALFwhhZJVKD48+eO4u922V0uPxWD539D/Qhdpalx
+            wvTdkwI44IQgG7rtvao81vS0
+            -----END PRIVATE KEY-----
+            """;
+
     private static final X509Certificate SIGNING_CERTIFICATE;
     private static final PrivateKey SIGNING_PRIVATE_KEY;
     private static final X509Certificate UNTRUSTED_CERTIFICATE;
+    private static final X509Certificate ROLLOVER_B_CERTIFICATE;
+    private static final PrivateKey ROLLOVER_B_PRIVATE_KEY;
+    private static final X509Certificate ROLLOVER_C_CERTIFICATE;
+    private static final PrivateKey ROLLOVER_C_PRIVATE_KEY;
 
     static {
         OpenSamlInitializationService.initialize();
         SIGNING_CERTIFICATE = readCertificate(SIGNING_CERTIFICATE_PEM);
         SIGNING_PRIVATE_KEY = readPrivateKey(SIGNING_PRIVATE_KEY_PEM);
         UNTRUSTED_CERTIFICATE = readCertificate(UNTRUSTED_CERTIFICATE_PEM);
+        ROLLOVER_B_CERTIFICATE = readCertificate(ROLLOVER_B_CERTIFICATE_PEM);
+        ROLLOVER_B_PRIVATE_KEY = readPrivateKey(ROLLOVER_B_PRIVATE_KEY_PEM);
+        ROLLOVER_C_CERTIFICATE = readCertificate(ROLLOVER_C_CERTIFICATE_PEM);
+        ROLLOVER_C_PRIVATE_KEY = readPrivateKey(ROLLOVER_C_PRIVATE_KEY_PEM);
     }
 
     @Test
@@ -203,9 +332,105 @@ class SamlSignatureValidationTests {
                 .isEqualTo(Saml2ErrorCodes.INVALID_SIGNATURE);
     }
 
+    @Test
+    void metadataTrustAcceptsAAndBAcrossRolloverButRejectsRemovedOrUnknownKeys(
+            @TempDir Path tempDir) throws Exception {
+
+        RelyingPartyRegistration aOnly = registrationFromMetadata(
+                tempDir.resolve("a-only.xml"), SIGNING_CERTIFICATE);
+        RelyingPartyRegistration overlap = registrationFromMetadata(
+                tempDir.resolve("overlap.xml"), SIGNING_CERTIFICATE, ROLLOVER_B_CERTIFICATE);
+        RelyingPartyRegistration bOnly = registrationFromMetadata(
+                tempDir.resolve("b-only.xml"), ROLLOVER_B_CERTIFICATE);
+
+        assertVerificationCertificates(aOnly, SIGNING_CERTIFICATE);
+        assertVerificationCertificates(overlap, SIGNING_CERTIFICATE, ROLLOVER_B_CERTIFICATE);
+        assertVerificationCertificates(bOnly, ROLLOVER_B_CERTIFICATE);
+
+        String signedByA = serialize(sign(validResponse(), SIGNING_CERTIFICATE, SIGNING_PRIVATE_KEY));
+        String signedByB = serialize(sign(validResponse(), ROLLOVER_B_CERTIFICATE, ROLLOVER_B_PRIVATE_KEY));
+        String signedByC = serialize(sign(validResponse(), ROLLOVER_C_CERTIFICATE, ROLLOVER_C_PRIVATE_KEY));
+
+        assertAccepted(aOnly, signedByA);
+        assertInvalidSignature(aOnly, signedByB);
+        assertAccepted(overlap, signedByA);
+        assertAccepted(overlap, signedByB);
+        assertInvalidSignature(overlap, signedByC);
+        assertInvalidSignature(bOnly, signedByA);
+        assertAccepted(bOnly, signedByB);
+    }
+
+    private static RelyingPartyRegistration registrationFromMetadata(
+            Path metadataPath, X509Certificate... verificationCertificates) throws Exception {
+
+        StringBuilder keys = new StringBuilder();
+        for (X509Certificate certificate : verificationCertificates) {
+            keys.append("""
+                    <md:KeyDescriptor use="signing">
+                      <ds:KeyInfo><ds:X509Data><ds:X509Certificate>%s</ds:X509Certificate></ds:X509Data></ds:KeyInfo>
+                    </md:KeyDescriptor>
+                    """.formatted(Base64.getEncoder().encodeToString(certificate.getEncoded())));
+        }
+
+        String metadata = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+                        xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="%s">
+                  <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
+                          WantAuthnRequestsSigned="false">
+                    %s
+                    <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+                            Location="%s"/>
+                  </md:IDPSSODescriptor>
+                </md:EntityDescriptor>
+                """.formatted(IDP_ENTITY_ID, keys, IDP_SSO_URL);
+        Files.writeString(metadataPath, metadata, StandardCharsets.UTF_8);
+
+        RelyingPartyRegistrationRepository repository = new SamlRelyingPartyConfig()
+                .relyingPartyRegistrationRepository(
+                        metadataPath.toUri().toString(),
+                        new MockEnvironment(),
+                        new DefaultResourceLoader());
+        RelyingPartyRegistration registration = Objects.requireNonNull(
+                repository.findByRegistrationId(REGISTRATION_ID));
+        assertThat(registration.getAssertionConsumerServiceLocation())
+                .isEqualTo("{baseUrl}/saml/acs");
+
+        // The servlet resolves {baseUrl} from the request before validation.
+        return registration.mutate().assertionConsumerServiceLocation(ACS_URL).build();
+    }
+
+    private static void assertVerificationCertificates(
+            RelyingPartyRegistration registration, X509Certificate... expected) {
+        assertThat(registration.getAssertingPartyMetadata().getVerificationX509Credentials()
+                .stream().map(Saml2X509Credential::getCertificate).toList())
+                .containsExactlyInAnyOrder(expected);
+    }
+
+    private static void assertAccepted(RelyingPartyRegistration registration, String signedResponse) {
+        Authentication authentication = authenticate(signedResponse, registration);
+        assertThat(authentication.isAuthenticated()).isTrue();
+        assertThat(authentication.getName()).isEqualTo(PRINCIPAL);
+    }
+
+    private static void assertInvalidSignature(
+            RelyingPartyRegistration registration, String signedResponse) {
+        Saml2AuthenticationException error = assertThrows(
+                Saml2AuthenticationException.class,
+                () -> authenticate(signedResponse, registration));
+        assertThat(error.getSaml2Error().getErrorCode())
+                .isEqualTo(Saml2ErrorCodes.INVALID_SIGNATURE);
+    }
+
     private static Authentication authenticate(
             String samlResponse,
             X509Certificate trustedVerificationCertificate) {
+
+        return authenticate(samlResponse, relyingPartyRegistration(trustedVerificationCertificate));
+    }
+
+    private static Authentication authenticate(
+            String samlResponse, RelyingPartyRegistration registration) {
 
         OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
         provider.setAssertionValidator(OpenSaml5AuthenticationProvider.AssertionValidator.builder()
@@ -213,18 +438,18 @@ class SamlSignatureValidationTests {
                 .build());
 
         return Objects.requireNonNull(provider.authenticate(
-                authenticationToken(samlResponse, trustedVerificationCertificate)));
+                authenticationToken(samlResponse, registration)));
     }
 
     private static Saml2AuthenticationToken authenticationToken(
             String samlResponse,
-            X509Certificate trustedVerificationCertificate) {
+            RelyingPartyRegistration registration) {
 
         AbstractSaml2AuthenticationRequest request = mock(AbstractSaml2AuthenticationRequest.class);
         when(request.getId()).thenReturn(AUTHN_REQUEST_ID);
 
         return new Saml2AuthenticationToken(
-                relyingPartyRegistration(trustedVerificationCertificate),
+                registration,
                 samlResponse,
                 request);
     }
@@ -332,8 +557,12 @@ class SamlSignatureValidationTests {
     }
 
     private static Response sign(Response response) {
+        return sign(response, SIGNING_CERTIFICATE, SIGNING_PRIVATE_KEY);
+    }
+
+    private static Response sign(Response response, X509Certificate certificate, PrivateKey privateKey) {
         BasicCredential credential =
-                CredentialSupport.getSimpleCredential(SIGNING_CERTIFICATE, SIGNING_PRIVATE_KEY);
+                CredentialSupport.getSimpleCredential(certificate, privateKey);
         credential.setEntityId(IDP_ENTITY_ID);
         credential.setUsageType(UsageType.SIGNING);
 
